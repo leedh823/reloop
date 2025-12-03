@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
       category: body.category,
       emotionTag: body.emotionTag,
       pdfUrl: body.pdfUrl,
+      thumbnailUrl: body.thumbnailUrl,
+      author: body.author,
     })
 
     // Discord Webhook으로 전송

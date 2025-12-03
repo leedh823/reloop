@@ -14,6 +14,8 @@ export default function SubmitPage() {
     emotionTag: '',
     category: '',
     pdfUrl: '',
+    thumbnailUrl: '',
+    author: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,6 +147,38 @@ export default function SubmitPage() {
               <option value="성장">성장</option>
               <option value="교훈">교훈</option>
             </select>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="thumbnailUrl" className="block text-sm font-medium text-gray-700 mb-2">
+              썸네일 이미지 URL (선택)
+            </label>
+            <input
+              type="url"
+              id="thumbnailUrl"
+              name="thumbnailUrl"
+              value={formData.thumbnailUrl}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
+              placeholder="썸네일 이미지 URL을 입력하세요"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-2">
+              작성자 (선택)
+            </label>
+            <input
+              type="text"
+              id="author"
+              name="author"
+              value={formData.author}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
+              placeholder="작성자 이름을 입력하세요"
+            />
           </div>
         </div>
 

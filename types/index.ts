@@ -6,6 +6,8 @@ export interface Failure {
   emotionTag: string;
   category: string;
   pdfUrl?: string;
+  thumbnailUrl?: string;
+  author?: string;
   createdAt: Date;
 }
 
@@ -16,5 +18,7 @@ export interface CreateFailureRequest {
   emotionTag: string;
   category: string;
   pdfUrl?: string;
+  thumbnailUrl?: string;
+  author?: string;
 }
 
