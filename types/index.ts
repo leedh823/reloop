@@ -24,3 +24,23 @@ export interface CreateFailureRequest {
   author?: string;
 }
 
+// AI 채팅 관련 타입
+export type ChatRole = 'user' | 'assistant'
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  createdAt: string;
+}
+
+export interface EmotionReflectRequest {
+  message: string;
+  failureSummary?: string;
+  emotionTag?: string;
+}
+
+export interface EmotionReflectResponse {
+  reply: string;
+}
+

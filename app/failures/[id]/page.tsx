@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getFailureById } from '@/lib/db'
+import EmotionChatLauncher from '@/components/EmotionChatLauncher'
 
 export default async function FailureDetailPage({
   params,
@@ -19,6 +20,11 @@ export default async function FailureDetailPage({
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* AI 채팅 런처 */}
+      <EmotionChatLauncher
+        failureSummary={failure.summary}
+        emotionTag={failure.emotionTag}
+      />
       <Link
         href="/failures"
         className="text-reloop-blue hover:underline mb-6 inline-block"
