@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --reloop-blue: #359DFE;
+  --reloop-gold: #9F9366;
+  --reloop-silver: #ACACAC;
+}
+
+body {
+  color: #1a1a1a;
+  background: #ffffff;
+}
+
