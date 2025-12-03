@@ -9,6 +9,8 @@ export interface Failure {
   thumbnailUrl?: string;
   author?: string;
   createdAt: Date;
+  hasAiReview?: boolean;
+  hasDiscordThread?: boolean;
 }
 
 export interface CreateFailureRequest {

@@ -1,96 +1,185 @@
-import Link from 'next/link'
+'use client'
+
+import { useState, useEffect, useMemo } from 'react'
+import { Failure } from '@/types'
+import HeroSection from '@/components/HeroSection'
+import FilterBar from '@/components/FilterBar'
+import FailureCard from '@/components/FailureCard'
+
+// Mock 데이터 (실제 API가 없을 때 사용)
+const mockFailures: Failure[] = [
+  {
+    id: '1',
+    title: '스타트업 면접에서 실수한 경험',
+    summary: '기술 면접에서 기본적인 질문에 답하지 못해 탈락했습니다. 하지만 이 경험을 통해 부족한 부분을 알게 되었습니다.',
+    content: '상세 내용...',
+    category: 'job',
+    emotionTag: 'frustration',
+    author: '김개발',
+    thumbnailUrl: undefined,
+    createdAt: new Date('2024-12-01'),
+    hasAiReview: true,
+    hasDiscordThread: true,
+  },
+  {
+    id: '2',
+    title: '대학 프로젝트 팀원과의 갈등',
+    summary: '팀 프로젝트에서 역할 분담이 제대로 되지 않아 프로젝트가 실패했습니다. 소통의 중요성을 배웠습니다.',
+    content: '상세 내용...',
+    category: 'school',
+    emotionTag: 'regret',
+    author: '이학생',
+    thumbnailUrl: undefined,
+    createdAt: new Date('2024-11-28'),
+    hasAiReview: false,
+    hasDiscordThread: true,
+  },
+  {
+    id: '3',
+    title: '사이드 프로젝트 중도 포기',
+    summary: '너무 많은 기능을 한 번에 구현하려다가 프로젝트를 완성하지 못했습니다. 작은 것부터 시작하는 것이 중요하다는 것을 배웠습니다.',
+    content: '상세 내용...',
+    category: 'side-project',
+    emotionTag: 'anxiety',
+    author: '박개발',
+    thumbnailUrl: undefined,
+    createdAt: new Date('2024-11-25'),
+    hasAiReview: true,
+    hasDiscordThread: false,
+  },
+  {
+    id: '4',
+    title: '비즈니스 파트너십 실패',
+    summary: '신뢰를 바탕으로 한 파트너십이었지만, 명확한 계약 없이 진행하다가 문제가 발생했습니다.',
+    content: '상세 내용...',
+    category: 'business',
+    emotionTag: 'regret',
+    author: '최창업',
+    thumbnailUrl: undefined,
+    createdAt: new Date('2024-11-20'),
+    hasAiReview: true,
+    hasDiscordThread: true,
+  },
+  {
+    id: '5',
+    title: '인간관계에서의 오해',
+    summary: '친구와의 오해로 인해 관계가 소원해졌습니다. 솔직한 대화의 중요성을 깨달았습니다.',
+    content: '상세 내용...',
+    category: 'relationship',
+    emotionTag: 'relief',
+    author: '정친구',
+    thumbnailUrl: undefined,
+    createdAt: new Date('2024-11-15'),
+    hasAiReview: false,
+    hasDiscordThread: true,
+  },
+  {
+    id: '6',
+    title: '포트폴리오 제작 실패',
+    summary: '완벽한 포트폴리오를 만들려다가 오히려 완성하지 못했습니다. 완벽보다 완성이 중요하다는 것을 배웠습니다.',
+    content: '상세 내용...',
+    category: 'side-project',
+    emotionTag: 'growth',
+    author: '강디자인',
+    thumbnailUrl: undefined,
+    createdAt: new Date('2024-11-10'),
+    hasAiReview: true,
+    hasDiscordThread: false,
+  },
+]
 
 export default function Home() {
+  const [failures, setFailures] = useState<Failure[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedEmotion, setSelectedEmotion] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // 데이터 로드
+  useEffect(() => {
+    async function fetchFailures() {
+      try {
+        const response = await fetch('/api/failures')
+        if (response.ok) {
+          const data = await response.json()
+          setFailures(data)
+        } else {
+          // API 실패 시 mock 데이터 사용
+          setFailures(mockFailures)
+        }
+      } catch (error) {
+        console.error('Failed to fetch failures:', error)
+        // 에러 시 mock 데이터 사용
+        setFailures(mockFailures)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFailures()
+  }, [])
+
+  // 필터링 로직
+  const filteredFailures = useMemo(() => {
+    return failures.filter((failure) => {
+      // 카테고리 필터
+      if (selectedCategory !== 'all' && failure.category !== selectedCategory) {
+        return false
+      }
+
+      // 감정 태그 필터
+      if (selectedEmotion !== 'all' && failure.emotionTag !== selectedEmotion) {
+        return false
+      }
+
+      // 검색 필터
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase()
+        const matchesTitle = failure.title.toLowerCase().includes(query)
+        const matchesSummary = failure.summary.toLowerCase().includes(query)
+        if (!matchesTitle && !matchesSummary) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [failures, selectedCategory, selectedEmotion, searchQuery])
+
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-reloop-blue/10 to-blue-50 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-              실패를 공유하고
-              <br />
-              <span className="text-reloop-blue">다시 도전</span>하세요
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              Reloop는 실패를 부끄럽게 여기지 않고, 함께 성장할 수 있는 커뮤니티입니다.
-              <br />
-              디스코드에서 함께 이야기하고 다음 도전을 준비하세요.
-            </p>
-            <div className="flex justify-center space-x-4">
-              <Link
-                href="/submit"
-                className="bg-reloop-blue text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-600 transition-colors"
-              >
-                실패 공유하기
-              </Link>
-              <Link
-                href="/failures"
-                className="bg-white text-reloop-blue border-2 border-reloop-blue px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-colors"
-              >
-                실패 목록 보기
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div className="min-h-screen bg-black">
+      {/* Hero 섹션 */}
+      <HeroSection />
 
-      {/* How it works */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            How it works
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-reloop-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">📝</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">1. 실패 작성</h3>
-              <p className="text-gray-600">
-                경험한 실패를 솔직하게 작성하고 공유하세요.
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-reloop-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">💬</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">2. 디스코드에서 이야기</h3>
-              <p className="text-gray-600">
-                디스코드 채널에서 다른 사람들과 함께 이야기하고 조언을 나누세요.
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-reloop-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🚀</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">3. 다시 도전</h3>
-              <p className="text-gray-600">
-                배운 것을 바탕으로 새로운 도전을 시작하세요.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 필터 바 */}
+      <FilterBar
+        selectedCategory={selectedCategory}
+        selectedEmotion={selectedEmotion}
+        searchQuery={searchQuery}
+        onCategoryChange={setSelectedCategory}
+        onEmotionChange={setSelectedEmotion}
+        onSearchChange={setSearchQuery}
+      />
 
-      {/* Discord CTA */}
-      <section className="py-20 bg-gradient-to-br from-reloop-gold/10 to-reloop-silver/10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            디스코드에서 함께 이야기해요
-          </h2>
-          <p className="text-lg text-gray-600 mb-8">
-            실패를 공유하면 디스코드 채널에 알림이 전송됩니다.
-            <br />
-            커뮤니티와 함께 성장하세요!
-          </p>
-          <div className="inline-flex items-center space-x-2 bg-gray-900 text-white px-6 py-3 rounded-lg">
-            <span className="text-xl">💬</span>
-            <span className="font-semibold">Discord 커뮤니티</span>
+      {/* 카드 그리드 */}
+      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {loading ? (
+          <div className="text-center py-20">
+            <p className="text-gray-400">로딩 중...</p>
           </div>
-        </div>
+        ) : filteredFailures.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-gray-400 text-lg mb-4">표시할 실패가 없습니다.</p>
+            <p className="text-gray-500 text-sm">필터를 조정하거나 검색어를 변경해보세요.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredFailures.map((failure) => (
+              <FailureCard key={failure.id} failure={failure} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   )
 }
-
