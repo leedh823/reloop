@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
     const emotionTag = formData.get('emotionTag') as string
     const thumbnailUrl = formData.get('thumbnailUrl') as string | null
     const author = formData.get('author') as string | null
-    const pdfUrl = formData.get('pdfUrl') as string | null
     const pdfFile = formData.get('pdfFile') as File | null
 
     // 필수 필드 검증
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // PDF 파일 처리
-    let finalPdfUrl = pdfUrl || undefined
+    let finalPdfUrl: string | undefined = undefined
 
     if (pdfFile) {
       // 파일 크기 검증 (10MB 제한)

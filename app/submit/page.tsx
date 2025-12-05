@@ -16,7 +16,6 @@ export default function SubmitPage() {
     content: '',
     emotionTag: '',
     category: '',
-    pdfUrl: '',
     thumbnailUrl: '',
     author: '',
   })
@@ -57,9 +56,6 @@ export default function SubmitPage() {
       }
       if (formData.author) {
         formDataToSend.append('author', formData.author)
-      }
-      if (formData.pdfUrl) {
-        formDataToSend.append('pdfUrl', formData.pdfUrl)
       }
       
       // PDF 파일 추가 (있는 경우)
@@ -224,60 +220,42 @@ export default function SubmitPage() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {/* PDF 파일 업로드 */}
-          <div>
-            <label htmlFor="pdfFile" className="block text-sm font-medium text-gray-700 mb-2">
-              PDF 파일 업로드 (선택)
-            </label>
-            <div className="space-y-2">
-              <input
-                ref={pdfFileInputRef}
-                type="file"
-                id="pdfFile"
-                accept="application/pdf"
-                onChange={handlePdfFileChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reloop-blue focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-reloop-blue file:text-white hover:file:bg-blue-600"
-              />
-              {pdfFile && (
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">{pdfFile.name}</span>
-                    <span className="text-xs text-gray-500">
-                      ({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPdfFile(null)
-                      if (pdfFileInputRef.current) {
-                        pdfFileInputRef.current.value = ''
-                      }
-                    }}
-                    className="text-sm text-red-600 hover:text-red-700"
-                  >
-                    제거
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* PDF URL (기존 방식, 선택적) */}
-          <div>
-            <label htmlFor="pdfUrl" className="block text-sm font-medium text-gray-700 mb-2">
-              PDF URL (선택, 파일 업로드 대신 사용 가능)
-            </label>
+        {/* PDF 파일 업로드 */}
+        <div>
+          <label htmlFor="pdfFile" className="block text-sm font-medium text-gray-700 mb-2">
+            PDF 파일 업로드 (선택)
+          </label>
+          <div className="space-y-2">
             <input
-              type="url"
-              id="pdfUrl"
-              name="pdfUrl"
-              value={formData.pdfUrl}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
-              placeholder="또는 PDF 파일의 URL을 입력하세요"
+              ref={pdfFileInputRef}
+              type="file"
+              id="pdfFile"
+              accept="application/pdf"
+              onChange={handlePdfFileChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reloop-blue focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-reloop-blue file:text-white hover:file:bg-blue-600"
             />
+            {pdfFile && (
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700">{pdfFile.name}</span>
+                  <span className="text-xs text-gray-500">
+                    ({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPdfFile(null)
+                    if (pdfFileInputRef.current) {
+                      pdfFileInputRef.current.value = ''
+                    }
+                  }}
+                  className="text-sm text-red-600 hover:text-red-700"
+                >
+                  제거
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
