@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { ChatMessage, EmotionReflectRequest } from '@/types'
+import { formatTime } from '@/lib/utils/formatters'
 
 interface ChatPanelProps {
   isOpen: boolean
@@ -165,10 +166,7 @@ export default function ChatPanel({
                   {message.content}
                 </p>
                 <p className="text-xs mt-1 opacity-70">
-                  {new Date(message.createdAt).toLocaleTimeString('ko-KR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {formatTime(message.createdAt)}
                 </p>
               </div>
             </div>

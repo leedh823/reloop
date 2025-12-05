@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CreateFailureRequest } from '@/types'
+import { CATEGORIES, EMOTIONS } from '@/lib/constants'
 
 export default function SubmitPage() {
   const router = useRouter()
@@ -120,11 +121,11 @@ export default function SubmitPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
             >
               <option value="">선택하세요</option>
-              <option value="기술">기술</option>
-              <option value="비즈니스">비즈니스</option>
-              <option value="학습">학습</option>
-              <option value="인간관계">인간관계</option>
-              <option value="기타">기타</option>
+              {CATEGORIES.filter(c => c.id !== 'all').map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -141,11 +142,11 @@ export default function SubmitPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
             >
               <option value="">선택하세요</option>
-              <option value="아쉬움">아쉬움</option>
-              <option value="후회">후회</option>
-              <option value="좌절">좌절</option>
-              <option value="성장">성장</option>
-              <option value="교훈">교훈</option>
+              {EMOTIONS.filter(e => e.id !== 'all').map((emotion) => (
+                <option key={emotion.id} value={emotion.id}>
+                  {emotion.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>

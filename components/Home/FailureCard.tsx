@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Failure } from '@/types'
+import { getCategoryLabel } from '@/lib/constants/categories'
+import { getEmotionLabel } from '@/lib/constants/emotions'
+import { formatDate } from '@/lib/utils/formatters'
 
 interface FailureCardProps {
   failure: Failure
@@ -8,25 +11,8 @@ interface FailureCardProps {
 }
 
 export default function FailureCard({ failure, discordThreadUrl = '#' }: FailureCardProps) {
-  const categoryMap: Record<string, string> = {
-    'job': '취업',
-    'school': '학교',
-    'side-project': '사이드프로젝트',
-    'relationship': '관계',
-    'business': '비즈니스',
-    'other': '기타',
-  }
-
-  const emotionMap: Record<string, string> = {
-    'anxiety': '불안',
-    'frustration': '좌절',
-    'regret': '후회',
-    'relief': '안도',
-    'growth': '성장',
-  }
-
-  const categoryLabel = categoryMap[failure.category] || failure.category
-  const emotionLabel = emotionMap[failure.emotionTag] || failure.emotionTag
+  const categoryLabel = getCategoryLabel(failure.category)
+  const emotionLabel = getEmotionLabel(failure.emotionTag)
 
   return (
     <Link
@@ -77,13 +63,7 @@ export default function FailureCard({ failure, discordThreadUrl = '#' }: Failure
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <span>{failure.author || '익명'}</span>
             <span>•</span>
-            <span>
-              {new Date(failure.createdAt).toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              })}
-            </span>
+            <span>{formatDate(failure.createdAt)}</span>
           </div>
 
           <div className="flex items-center gap-2">

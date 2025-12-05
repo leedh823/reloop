@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { CATEGORIES } from '@/lib/constants/categories'
+import { EMOTIONS } from '@/lib/constants/emotions'
 
 interface FilterBarProps {
   selectedCategory: string
@@ -10,25 +11,6 @@ interface FilterBarProps {
   onEmotionChange: (emotion: string) => void
   onSearchChange: (query: string) => void
 }
-
-const categories = [
-  { id: 'all', label: '전체' },
-  { id: 'job', label: '취업' },
-  { id: 'school', label: '학교' },
-  { id: 'side-project', label: '사이드프로젝트' },
-  { id: 'relationship', label: '관계' },
-  { id: 'business', label: '비즈니스' },
-  { id: 'other', label: '기타' },
-]
-
-const emotions = [
-  { id: 'all', label: '전체' },
-  { id: 'anxiety', label: '불안' },
-  { id: 'frustration', label: '좌절' },
-  { id: 'regret', label: '후회' },
-  { id: 'relief', label: '안도' },
-  { id: 'growth', label: '성장' },
-]
 
 export default function FilterBar({
   selectedCategory,
@@ -44,7 +26,7 @@ export default function FilterBar({
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
           {/* 좌측: 카테고리 탭 */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide w-full lg:w-auto pb-2 lg:pb-0">
-            {categories.map((category) => (
+            {CATEGORIES.map((category) => (
               <button
                 key={category.id}
                 onClick={() => onCategoryChange(category.id)}
@@ -61,7 +43,7 @@ export default function FilterBar({
 
           {/* 중앙: 감정 태그 필터 */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide w-full lg:w-auto pb-2 lg:pb-0">
-            {emotions.map((emotion) => (
+            {EMOTIONS.map((emotion) => (
               <button
                 key={emotion.id}
                 onClick={() => onEmotionChange(emotion.id)}

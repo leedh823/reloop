@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Failure } from '@/types'
-import HeroSection from '@/components/HeroSection'
-import FilterBar from '@/components/FilterBar'
-import FailureCard from '@/components/FailureCard'
+import HeroSection from '@/components/Home/HeroSection'
+import FilterBar from '@/components/Home/FilterBar'
+import FailureCard from '@/components/Home/FailureCard'
+import { filterFailures } from '@/lib/utils/filters'
 
 // Mock 데이터 (실제 API가 없을 때 사용)
 const mockFailures: Failure[] = [
@@ -121,28 +122,10 @@ export default function Home() {
 
   // 필터링 로직
   const filteredFailures = useMemo(() => {
-    return failures.filter((failure) => {
-      // 카테고리 필터
-      if (selectedCategory !== 'all' && failure.category !== selectedCategory) {
-        return false
-      }
-
-      // 감정 태그 필터
-      if (selectedEmotion !== 'all' && failure.emotionTag !== selectedEmotion) {
-        return false
-      }
-
-      // 검색 필터
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase()
-        const matchesTitle = failure.title.toLowerCase().includes(query)
-        const matchesSummary = failure.summary.toLowerCase().includes(query)
-        if (!matchesTitle && !matchesSummary) {
-          return false
-        }
-      }
-
-      return true
+    return filterFailures(failures, {
+      category: selectedCategory,
+      emotion: selectedEmotion,
+      searchQuery,
     })
   }, [failures, selectedCategory, selectedEmotion, searchQuery])
 

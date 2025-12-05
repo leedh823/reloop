@@ -1,46 +1,17 @@
-export interface Failure {
-  id: string;
-  title: string;
-  summary: string;
-  content: string;
-  emotionTag: string;
-  category: string;
-  pdfUrl?: string;
-  thumbnailUrl?: string;
-  author?: string;
-  createdAt: Date;
-  hasAiReview?: boolean;
-  hasDiscordThread?: boolean;
-}
+/**
+ * 타입 정의 인덱스 파일
+ * 모든 타입을 한 곳에서 export
+ */
 
-export interface CreateFailureRequest {
-  title: string;
-  summary: string;
-  content: string;
-  emotionTag: string;
-  category: string;
-  pdfUrl?: string;
-  thumbnailUrl?: string;
-  author?: string;
-}
+// 엔티티 타입
+export * from './entities'
 
-// AI 채팅 관련 타입
-export type ChatRole = 'user' | 'assistant'
+// 요청/응답 타입
+export * from './requests'
 
-export interface ChatMessage {
-  id: string;
-  role: ChatRole;
-  content: string;
-  createdAt: string;
-}
+// 채팅 타입
+export * from './chat'
 
-export interface EmotionReflectRequest {
-  message: string;
-  failureSummary?: string;
-  emotionTag?: string;
-}
-
-export interface EmotionReflectResponse {
-  reply: string;
-}
+// AI 분석 타입
+export * from './ai-analysis'
 

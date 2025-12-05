@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { getAllFailures } from '@/lib/db'
-import FailureCardCarousel from '@/components/FailureCardCarousel'
+import FailureCardCarousel from '@/components/Failures/FailureCardCarousel'
 
 export default async function FailuresPage() {
   // 서버 컴포넌트에서 직접 DB 함수 호출 (프로덕션 최적화)

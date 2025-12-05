@@ -1,7 +1,10 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getFailureById } from '@/lib/db'
-import EmotionChatLauncher from '@/components/EmotionChatLauncher'
+import EmotionChatLauncher from '@/components/AI/EmotionChatLauncher'
+import { getCategoryLabel } from '@/lib/constants/categories'
+import { getEmotionLabel } from '@/lib/constants/emotions'
+import { formatDateTime } from '@/lib/utils/formatters'
 
 export default async function FailureDetailPage({
   params,
@@ -40,14 +43,14 @@ export default async function FailureDetailPage({
             </h1>
             <div className="flex flex-wrap gap-2 mb-4">
               <span className="px-4 py-1 bg-reloop-blue/10 text-reloop-blue text-sm rounded-full">
-                {failure.category}
+                {getCategoryLabel(failure.category)}
               </span>
               <span className="px-4 py-1 bg-reloop-gold/10 text-reloop-gold text-sm rounded-full">
-                {failure.emotionTag}
+                {getEmotionLabel(failure.emotionTag)}
               </span>
             </div>
             <p className="text-sm text-gray-400">
-              {new Date(failure.createdAt).toLocaleString('ko-KR')}
+              {formatDateTime(failure.createdAt)}
             </p>
           </div>
         </div>
