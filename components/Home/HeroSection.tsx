@@ -28,7 +28,7 @@ export default function HeroSection() {
                 실패 올리기
               </Link>
               <Link
-                href="/submit"
+                href="/ai"
                 className="bg-white/10 text-white border border-white/20 px-6 py-3 rounded-lg font-semibold hover:bg-white/20 transition-colors text-center"
               >
                 AI에게 정리 요청하기

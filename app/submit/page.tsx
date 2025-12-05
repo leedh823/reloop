@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { CreateFailureRequest } from '@/types'
 import { CATEGORIES, EMOTIONS } from '@/lib/constants'
@@ -8,6 +8,8 @@ import { CATEGORIES, EMOTIONS } from '@/lib/constants'
 export default function SubmitPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const pdfFileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<CreateFailureRequest>({
     title: '',
     summary: '',
@@ -19,24 +21,63 @@ export default function SubmitPage() {
     author: '',
   })
 
+  const handlePdfFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // 파일 타입 검증
+      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+        alert('PDF 파일만 업로드할 수 있습니다.')
+        return
+      }
+      // 파일 크기 검증 (10MB 제한)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('파일 크기가 너무 큽니다. (최대 10MB)')
+        return
+      }
+      setPdfFile(file)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      // FormData 생성
+      const formDataToSend = new FormData()
+      
+      // 텍스트 필드 추가
+      formDataToSend.append('title', formData.title)
+      formDataToSend.append('summary', formData.summary)
+      formDataToSend.append('content', formData.content)
+      formDataToSend.append('category', formData.category)
+      formDataToSend.append('emotionTag', formData.emotionTag)
+      if (formData.thumbnailUrl) {
+        formDataToSend.append('thumbnailUrl', formData.thumbnailUrl)
+      }
+      if (formData.author) {
+        formDataToSend.append('author', formData.author)
+      }
+      if (formData.pdfUrl) {
+        formDataToSend.append('pdfUrl', formData.pdfUrl)
+      }
+      
+      // PDF 파일 추가 (있는 경우)
+      if (pdfFile) {
+        formDataToSend.append('pdfFile', pdfFile)
+      }
+
       const response = await fetch('/api/failures', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        body: formDataToSend,
       })
 
       if (response.ok) {
         const data = await response.json()
         router.push(`/failures/${data.id}`)
       } else {
-        alert('실패를 저장하는 중 오류가 발생했습니다.')
+        const errorData = await response.json().catch(() => ({}))
+        alert(errorData.error || '실패를 저장하는 중 오류가 발생했습니다.')
       }
     } catch (error) {
       console.error('Error:', error)
@@ -183,19 +224,61 @@ export default function SubmitPage() {
           </div>
         </div>
 
-        <div>
-          <label htmlFor="pdfUrl" className="block text-sm font-medium text-gray-700 mb-2">
-            PDF URL (선택)
-          </label>
-          <input
-            type="url"
-            id="pdfUrl"
-            name="pdfUrl"
-            value={formData.pdfUrl}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
-            placeholder="관련 PDF 파일의 URL을 입력하세요"
-          />
+        <div className="space-y-4">
+          {/* PDF 파일 업로드 */}
+          <div>
+            <label htmlFor="pdfFile" className="block text-sm font-medium text-gray-700 mb-2">
+              PDF 파일 업로드 (선택)
+            </label>
+            <div className="space-y-2">
+              <input
+                ref={pdfFileInputRef}
+                type="file"
+                id="pdfFile"
+                accept="application/pdf"
+                onChange={handlePdfFileChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reloop-blue focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-reloop-blue file:text-white hover:file:bg-blue-600"
+              />
+              {pdfFile && (
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-700">{pdfFile.name}</span>
+                    <span className="text-xs text-gray-500">
+                      ({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPdfFile(null)
+                      if (pdfFileInputRef.current) {
+                        pdfFileInputRef.current.value = ''
+                      }
+                    }}
+                    className="text-sm text-red-600 hover:text-red-700"
+                  >
+                    제거
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* PDF URL (기존 방식, 선택적) */}
+          <div>
+            <label htmlFor="pdfUrl" className="block text-sm font-medium text-gray-700 mb-2">
+              PDF URL (선택, 파일 업로드 대신 사용 가능)
+            </label>
+            <input
+              type="url"
+              id="pdfUrl"
+              name="pdfUrl"
+              value={formData.pdfUrl}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
+              placeholder="또는 PDF 파일의 URL을 입력하세요"
+            />
+          </div>
         </div>
 
         <div className="flex justify-end space-x-4">

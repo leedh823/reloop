@@ -16,6 +16,12 @@ export default function Navbar() {
               실패 목록
             </Link>
             <Link 
+              href="/ai" 
+              className="text-gray-700 hover:text-reloop-blue transition-colors"
+            >
+              AI 분석
+            </Link>
+            <Link 
               href="/submit" 
               className="bg-reloop-blue text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
             >

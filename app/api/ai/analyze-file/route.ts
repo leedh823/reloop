@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AnalyzeFileResponse, FileAnalysisResult } from '@/types'
+// @ts-ignore - pdf-parse는 CommonJS 모듈
+import pdfParse from 'pdf-parse'
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_TEXT_LENGTH = 10000 // 최대 10,000자만 분석
 
 export async function POST(request: NextRequest) {
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
     // 파일 크기 체크
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json<AnalyzeFileResponse>(
-        { success: false, error: '파일 크기가 너무 큽니다. (최대 5MB)' },
+        { success: false, error: `파일 크기가 너무 큽니다. (최대 ${MAX_FILE_SIZE / 1024 / 1024}MB)` },
         { status: 400 }
       )
     }
@@ -47,28 +49,53 @@ export async function POST(request: NextRequest) {
 
     // 파일 내용 추출
     let textContent = ''
+    let originalLength = 0
 
     if (fileExtension === 'txt' || fileExtension === 'md') {
       // 텍스트 파일 직접 읽기
       textContent = await file.text()
+      originalLength = textContent.length
     } else if (fileExtension === 'pdf') {
-      // PDF는 일단 TODO로 남김 (pdf-parse 라이브러리 필요)
-      return NextResponse.json<AnalyzeFileResponse>(
-        { success: false, error: 'PDF 파일은 아직 지원하지 않습니다. 텍스트 파일(.txt, .md)을 사용해주세요.' },
-        { status: 400 }
-      )
+      try {
+        // PDF 파일을 ArrayBuffer로 읽기
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        
+        // pdf-parse로 텍스트 추출
+        const pdfData = await pdfParse(buffer)
+        textContent = pdfData.text
+        originalLength = textContent.length
+        
+        if (!textContent || textContent.trim().length === 0) {
+          return NextResponse.json<AnalyzeFileResponse>(
+            { success: false, error: 'PDF 파일에서 텍스트를 추출할 수 없습니다. 텍스트가 포함된 PDF인지 확인해주세요.' },
+            { status: 400 }
+          )
+        }
+      } catch (error) {
+        console.error('PDF 파싱 오류:', error)
+        return NextResponse.json<AnalyzeFileResponse>(
+          { success: false, error: 'PDF 파일을 읽는 중 오류가 발생했습니다.' },
+          { status: 500 }
+        )
+      }
     } else if (fileExtension === 'docx') {
       // DOCX는 일단 TODO로 남김
       return NextResponse.json<AnalyzeFileResponse>(
-        { success: false, error: 'DOCX 파일은 아직 지원하지 않습니다. 텍스트 파일(.txt, .md)을 사용해주세요.' },
+        { success: false, error: 'DOCX 파일은 아직 지원하지 않습니다. 텍스트 파일(.txt, .md) 또는 PDF를 사용해주세요.' },
+        { status: 400 }
+      )
+    } else {
+      return NextResponse.json<AnalyzeFileResponse>(
+        { success: false, error: '지원하지 않는 파일 형식입니다.' },
         { status: 400 }
       )
     }
 
     // 텍스트 길이 제한
-    const originalLength = textContent.length
     if (textContent.length > MAX_TEXT_LENGTH) {
       textContent = textContent.substring(0, MAX_TEXT_LENGTH)
+      console.log(`텍스트가 ${MAX_TEXT_LENGTH}자를 초과하여 잘렸습니다. (원본: ${originalLength}자)`)
     }
 
     // OpenAI API 호출
