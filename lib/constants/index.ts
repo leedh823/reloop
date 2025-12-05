@@ -5,4 +5,6 @@
 export * from './brand'
 export * from './categories'
 export * from './emotions'
+export * from './file-upload'
+export * from './theme'
 

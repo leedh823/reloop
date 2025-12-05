@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { EMOTIONS } from '@/lib/constants/emotions'
+import { EMOTIONS, MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_PDF_SIZE_MB, MAX_OTHER_FILE_SIZE_MB } from '@/lib/constants'
 
 interface FileUploadPanelProps {
   onFileSelect: (file: File, description?: string, emotionTag?: string) => void
@@ -27,10 +27,10 @@ export default function FileUploadPanel({
       return
     }
 
-    // PDF 파일 크기 제한 (10MB)
-    const maxSize = extension === 'pdf' ? 10 * 1024 * 1024 : 5 * 1024 * 1024
+    // 파일 크기 제한
+    const maxSize = extension === 'pdf' ? MAX_PDF_SIZE_BYTES : MAX_OTHER_FILE_SIZE_BYTES
+    const maxSizeMB = extension === 'pdf' ? MAX_PDF_SIZE_MB : MAX_OTHER_FILE_SIZE_MB
     if (selectedFile.size > maxSize) {
-      const maxSizeMB = maxSize / 1024 / 1024
       alert(`파일 크기가 너무 큽니다. (최대 ${maxSizeMB}MB)`)
       return
     }
@@ -129,7 +129,7 @@ export default function FileUploadPanel({
             <div className="text-gray-400 text-4xl">📄</div>
             <div>
               <p className="text-white mb-2">파일을 드래그하거나 클릭하여 업로드</p>
-              <p className="text-gray-400 text-sm">txt, md, pdf, docx (PDF 최대 10MB, 기타 최대 5MB)</p>
+              <p className="text-gray-400 text-sm">txt, md, pdf, docx (PDF 최대 50MB, 기타 최대 5MB)</p>
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}

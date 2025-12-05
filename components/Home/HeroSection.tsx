@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { PrimaryButtonLink, SecondaryButtonLink } from '@/components/UI/Button'
 
 export default function HeroSection() {
   return (
@@ -21,21 +22,15 @@ export default function HeroSection() {
 
             {/* 버튼 그룹 */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/submit"
-                className="bg-reloop-blue text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors text-center"
-              >
+              <PrimaryButtonLink href="/submit">
                 실패 올리기
-              </Link>
-              <Link
-                href="/ai"
-                className="bg-white/10 text-white border border-white/20 px-6 py-3 rounded-lg font-semibold hover:bg-white/20 transition-colors text-center"
-              >
+              </PrimaryButtonLink>
+              <SecondaryButtonLink href="/ai">
                 AI에게 정리 요청하기
-              </Link>
+              </SecondaryButtonLink>
               <Link
                 href="#"
-                className="bg-white/10 text-white border border-white/20 px-6 py-3 rounded-lg font-semibold hover:bg-white/20 transition-colors text-center"
+                className="bg-[#111111] text-white border border-[#2A2A2A] px-6 py-3 rounded-lg font-semibold hover:bg-[#1c1c1c] transition-colors text-center"
               >
                 Discord에서 이야기하기
               </Link>

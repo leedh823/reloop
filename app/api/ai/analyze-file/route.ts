@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AnalyzeFileResponse, FileAnalysisResult } from '@/types'
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-const MAX_TEXT_LENGTH = 10000 // 최대 10,000자만 분석
+import { MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_TEXT_LENGTH } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,10 +17,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 파일 크기 체크
-    if (file.size > MAX_FILE_SIZE) {
+    const fileExtension = file.name.split('.').pop()?.toLowerCase()
+    const maxSize = fileExtension === 'pdf' ? MAX_PDF_SIZE_BYTES : MAX_OTHER_FILE_SIZE_BYTES
+    const maxSizeMB = fileExtension === 'pdf' ? 50 : 5
+    
+    if (file.size > maxSize) {
       return NextResponse.json<AnalyzeFileResponse>(
-        { success: false, error: `파일 크기가 너무 큽니다. (최대 ${MAX_FILE_SIZE / 1024 / 1024}MB)` },
-        { status: 400 }
+        { success: false, error: `파일 용량이 너무 큽니다. ${fileExtension === 'pdf' ? 'PDF는' : '파일은'} 최대 ${maxSizeMB}MB까지 지원합니다.` },
+        { status: 413 }
       )
     }
 
@@ -33,7 +35,6 @@ export async function POST(request: NextRequest) {
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ]
-    const fileExtension = file.name.split('.').pop()?.toLowerCase()
 
     if (
       !allowedTypes.includes(file.type) &&

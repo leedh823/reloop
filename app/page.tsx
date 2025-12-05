@@ -5,6 +5,7 @@ import { Failure } from '@/types'
 import HeroSection from '@/components/Home/HeroSection'
 import FilterBar from '@/components/Home/FilterBar'
 import FailureCard from '@/components/Home/FailureCard'
+import EmptyState from '@/components/Home/EmptyState'
 import { filterFailures } from '@/lib/utils/filters'
 
 // Mock 데이터 (실제 API가 없을 때 사용)
@@ -148,13 +149,10 @@ export default function Home() {
       <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {loading ? (
           <div className="text-center py-20">
-            <p className="text-gray-400">로딩 중...</p>
+            <p className="text-[#B3B3B3]">로딩 중...</p>
           </div>
         ) : filteredFailures.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-gray-400 text-lg mb-4">표시할 실패가 없습니다.</p>
-            <p className="text-gray-500 text-sm">필터를 조정하거나 검색어를 변경해보세요.</p>
-          </div>
+          <EmptyState />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredFailures.map((failure) => (

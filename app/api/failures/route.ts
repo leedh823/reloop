@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createFailure, getAllFailures } from '@/lib/db'
 import { sendToDiscord } from '@/lib/discord'
+import { MAX_PDF_SIZE_BYTES } from '@/lib/constants'
 
 export async function GET() {
   try {
@@ -41,11 +42,11 @@ export async function POST(request: NextRequest) {
     let finalPdfUrl: string | undefined = undefined
 
     if (pdfFile) {
-      // 파일 크기 검증 (10MB 제한)
-      if (pdfFile.size > 10 * 1024 * 1024) {
+      // 파일 크기 검증 (50MB 제한)
+      if (pdfFile.size > MAX_PDF_SIZE_BYTES) {
         return NextResponse.json(
-          { error: 'PDF 파일 크기가 너무 큽니다. (최대 10MB)' },
-          { status: 400 }
+          { error: '파일 용량이 너무 큽니다. PDF는 최대 50MB까지 지원합니다.' },
+          { status: 413 }
         )
       }
 

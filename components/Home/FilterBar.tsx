@@ -1,7 +1,8 @@
 'use client'
 
-import { CATEGORIES } from '@/lib/constants/categories'
-import { EMOTIONS } from '@/lib/constants/emotions'
+import SearchBar from './SearchBar'
+import CategoryFilter from './CategoryFilter'
+import EmotionFilter from './EmotionFilter'
 
 interface FilterBarProps {
   selectedCategory: string
@@ -21,71 +22,32 @@ export default function FilterBar({
   onSearchChange,
 }: FilterBarProps) {
   return (
-    <div className="bg-black border-b border-white/10 sticky top-16 z-40">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-          {/* 좌측: 카테고리 탭 */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide w-full lg:w-auto pb-2 lg:pb-0">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => onCategoryChange(category.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                  selectedCategory === category.id
-                    ? 'bg-reloop-blue text-white'
-                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                }`}
-              >
-                {category.label}
-              </button>
-            ))}
-          </div>
+    <div className="bg-black border-b border-[#2A2A2A] sticky top-16 z-40">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* 검색바 영역 */}
+        <div className="flex flex-col md:flex-row gap-4 items-center mb-6">
+          <SearchBar
+            value={searchQuery}
+            onChange={onSearchChange}
+            placeholder="제목, 요약 검색..."
+          />
+        </div>
 
-          {/* 중앙: 감정 태그 필터 */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide w-full lg:w-auto pb-2 lg:pb-0">
-            {EMOTIONS.map((emotion) => (
-              <button
-                key={emotion.id}
-                onClick={() => onEmotionChange(emotion.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                  selectedEmotion === emotion.id
-                    ? 'bg-reloop-gold text-white'
-                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                }`}
-              >
-                {emotion.label}
-              </button>
-            ))}
-          </div>
+        {/* 필터 영역 */}
+        <div className="space-y-4">
+          {/* 카테고리 필터 */}
+          <CategoryFilter
+            selectedCategory={selectedCategory}
+            onCategoryChange={onCategoryChange}
+          />
 
-          {/* 우측: 검색 인풋 */}
-          <div className="w-full lg:w-auto lg:ml-auto">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="제목, 요약 검색..."
-                className="w-full lg:w-64 px-4 py-2 pl-10 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
-              />
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-          </div>
+          {/* 감정 필터 */}
+          <EmotionFilter
+            selectedEmotion={selectedEmotion}
+            onEmotionChange={onEmotionChange}
+          />
         </div>
       </div>
     </div>
   )
 }
-

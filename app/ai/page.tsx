@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import Link from 'next/link'
 import { FileAnalysisResult } from '@/types'
 import AnalysisResultPanel from '@/components/AI/AnalysisResultPanel'
 import FileChatPanel from '@/components/AI/FileChatPanel'
-import { EMOTIONS } from '@/lib/constants/emotions'
+import { EMOTIONS, MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_PDF_SIZE_MB, MAX_OTHER_FILE_SIZE_MB } from '@/lib/constants'
+import { PrimaryButton } from '@/components/UI/Button'
 
 export default function AiOnboardingAndChatPage() {
   const [file, setFile] = useState<File | null>(null)
@@ -26,9 +26,9 @@ export default function AiOnboardingAndChatPage() {
       return
     }
 
-    const maxSize = extension === 'pdf' ? 10 * 1024 * 1024 : 5 * 1024 * 1024
+    const maxSize = extension === 'pdf' ? MAX_PDF_SIZE_BYTES : MAX_OTHER_FILE_SIZE_BYTES
+    const maxSizeMB = extension === 'pdf' ? MAX_PDF_SIZE_MB : MAX_OTHER_FILE_SIZE_MB
     if (selectedFile.size > maxSize) {
-      const maxSizeMB = maxSize / 1024 / 1024
       alert(`파일 크기가 너무 큽니다. (최대 ${maxSizeMB}MB)`)
       return
     }
@@ -117,23 +117,6 @@ export default function AiOnboardingAndChatPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      {/* 헤더 */}
-      <header className="bg-[#111] border-b border-[#2a2a2a] sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-reloop-blue">
-              Reloop
-            </Link>
-            <Link
-              href="/"
-              className="text-gray-300 hover:text-white transition-colors"
-            >
-              ← 홈으로
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* 메인 영역 */}
       <main className="max-w-[1040px] mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         {!analysisResult ? (
@@ -189,7 +172,7 @@ export default function AiOnboardingAndChatPage() {
                     <div>
                       <p className="text-white font-medium mb-2">파일을 드래그하거나 클릭하여 업로드</p>
                       <p className="text-gray-400 text-sm">
-                        txt, md, pdf, docx (PDF 최대 10MB, 기타 최대 5MB)
+                        txt, md, pdf, docx (PDF 최대 50MB, 기타 최대 5MB)
                       </p>
                     </div>
                     <button
@@ -229,7 +212,7 @@ export default function AiOnboardingAndChatPage() {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="예: 스타트업 면접 실패"
-                    className="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
+                    className="w-full px-4 py-2 bg-[#181818] border border-[#333333] rounded-lg text-[#F5F5F5] placeholder:text-[#777777] focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
                   />
                 </div>
 
@@ -237,29 +220,38 @@ export default function AiOnboardingAndChatPage() {
                   <label htmlFor="emotionTag" className="block text-sm font-medium text-gray-300 mb-2">
                     지금 느끼는 감정 (선택)
                   </label>
-                  <select
-                    id="emotionTag"
-                    value={emotionTag}
-                    onChange={(e) => setEmotionTag(e.target.value)}
-                    className="w-full px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
-                  >
-                    <option value="">선택하세요</option>
-                    {EMOTIONS.filter((e) => e.id !== 'all').map((emotion) => (
-                      <option key={emotion.id} value={emotion.label}>
-                        {emotion.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      id="emotionTag"
+                      value={emotionTag}
+                      onChange={(e) => setEmotionTag(e.target.value)}
+                      className="w-full px-4 py-2 bg-[#181818] border border-[#333333] rounded-lg text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent appearance-none pr-10"
+                    >
+                      <option value="" className="bg-[#181818]">선택하세요</option>
+                      {EMOTIONS.filter((e) => e.id !== 'all').map((emotion) => (
+                        <option key={emotion.id} value={emotion.label} className="bg-[#181818]">
+                          {emotion.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-5 h-5 text-[#B3B3B3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
 
             {/* 섹션 4: 버튼 영역 */}
             <section className="flex justify-center">
-              <button
+              <PrimaryButton
                 onClick={handleAnalyze}
                 disabled={!file || isAnalyzing}
-                className="w-full md:max-w-sm bg-reloop-blue text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-reloop-blue flex items-center justify-center gap-2"
+                fullWidth
+                rounded="full"
+                className="md:max-w-sm"
               >
                 {isAnalyzing ? (
                   <>
@@ -269,7 +261,7 @@ export default function AiOnboardingAndChatPage() {
                 ) : (
                   <span>AI에게 분석 요청하기</span>
                 )}
-              </button>
+              </PrimaryButton>
             </section>
 
             {/* 섹션 5: 향후 섹션 placeholder */}
