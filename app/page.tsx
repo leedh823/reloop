@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Failure } from '@/types'
 import HeroSection from '@/components/Home/HeroSection'
-import FilterBar from '@/components/Home/FilterBar'
+import SearchBar from '@/components/Home/SearchBar'
+import FilterWrapper from '@/components/Home/FilterWrapper'
 import FailureCard from '@/components/Home/FailureCard'
 import EmptyState from '@/components/Home/EmptyState'
 import { filterFailures } from '@/lib/utils/filters'
@@ -135,18 +136,23 @@ export default function Home() {
       {/* Hero 섹션 */}
       <HeroSection />
 
-      {/* 필터 바 */}
-      <FilterBar
+      {/* 검색바 (단독 섹션) */}
+      <SearchBar
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder="제목, 요약 검색..."
+      />
+
+      {/* 필터 영역 (카테고리 + 감정) */}
+      <FilterWrapper
         selectedCategory={selectedCategory}
         selectedEmotion={selectedEmotion}
-        searchQuery={searchQuery}
         onCategoryChange={setSelectedCategory}
         onEmotionChange={setSelectedEmotion}
-        onSearchChange={setSearchQuery}
       />
 
       {/* 카드 그리드 */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {loading ? (
           <div className="text-center py-20">
             <p className="text-[#B3B3B3]">로딩 중...</p>
