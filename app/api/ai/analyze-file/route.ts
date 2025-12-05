@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AnalyzeFileResponse, FileAnalysisResult } from '@/types'
-// @ts-ignore - pdf-parse는 CommonJS 모듈
-import pdfParse from 'pdf-parse'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_TEXT_LENGTH = 10000 // 최대 10,000자만 분석
@@ -61,7 +59,9 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
         
-        // pdf-parse로 텍스트 추출
+        // pdf-parse를 require로 로드 (CommonJS 모듈)
+        // @ts-ignore - pdf-parse는 CommonJS 모듈로 default export가 없음
+        const pdfParse = require('pdf-parse')
         const pdfData = await pdfParse(buffer)
         textContent = pdfData.text
         originalLength = textContent.length
