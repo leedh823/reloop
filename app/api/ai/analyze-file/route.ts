@@ -134,10 +134,27 @@ export async function POST(request: NextRequest) {
 
     // OpenAI API 호출
     const apiKey = process.env.OPENAI_API_KEY?.trim()
+    
+    // 디버깅: 환경 변수 상태 로깅
+    console.log('API Key 체크:', {
+      exists: !!apiKey,
+      length: apiKey?.length || 0,
+      prefix: apiKey ? `${apiKey.substring(0, 7)}...` : 'undefined',
+      startsWithSk: apiKey?.startsWith('sk-') || false,
+    })
+    
     if (!apiKey) {
       console.error('OPENAI_API_KEY가 설정되지 않았습니다.')
       return NextResponse.json<AnalyzeFileResponse>(
-        { success: false, error: 'AI 서비스가 설정되지 않았습니다.' },
+        { success: false, error: 'AI 서비스가 설정되지 않았습니다. 환경 변수를 확인해주세요.' },
+        { status: 500 }
+      )
+    }
+    
+    if (!apiKey.startsWith('sk-')) {
+      console.error('OPENAI_API_KEY 형식이 올바르지 않습니다. (sk-로 시작해야 함)')
+      return NextResponse.json<AnalyzeFileResponse>(
+        { success: false, error: 'API 키 형식이 올바르지 않습니다.' },
         { status: 500 }
       )
     }
@@ -194,20 +211,37 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('OpenAI API 오류:', {
+      
+      // 상세한 오류 로깅
+      const errorInfo = {
         status: response.status,
         statusText: response.statusText,
         error: errorData,
-        apiKeyLength: apiKey?.length,
-        apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : 'undefined'
-      })
+        apiKeyExists: !!apiKey,
+        apiKeyLength: apiKey?.length || 0,
+        apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : 'undefined',
+        apiKeyEndsWith: apiKey ? `...${apiKey.substring(apiKey.length - 4)}` : 'undefined',
+      }
+      
+      console.error('OpenAI API 오류:', JSON.stringify(errorInfo, null, 2))
       
       // 403 오류에 대한 구체적인 메시지
       if (response.status === 403) {
+        // OpenAI API의 403 오류는 보통 API 키 권한 문제
+        let errorMessage = 'OpenAI API 접근이 거부되었습니다.'
+        
+        if (errorData?.error?.message) {
+          errorMessage += ` (${errorData.error.message})`
+        } else if (errorData?.error?.code) {
+          errorMessage += ` (코드: ${errorData.error.code})`
+        }
+        
+        errorMessage += ' API 키를 확인하거나 관리자에게 문의하세요.'
+        
         return NextResponse.json<AnalyzeFileResponse>(
           { 
             success: false, 
-            error: 'OpenAI API 접근이 거부되었습니다. API 키를 확인하거나 관리자에게 문의하세요.' 
+            error: errorMessage
           },
           { status: 403 }
         )
