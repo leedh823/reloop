@@ -57,3 +57,5 @@ import Image from 'next/image'
 - [SVGOMG](https://jakearchibald.github.io/svgomg/) - SVG 최적화
 - Next.js Image 컴포넌트 사용 시 자동 최적화됨
 
+
+

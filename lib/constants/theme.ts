@@ -73,3 +73,5 @@ export const THEME_CLASSES = {
   buttonSecondary: 'bg-[#111111] text-white border border-[#2A2A2A] px-6 py-3 rounded-lg font-semibold hover:bg-[#1c1c1c] transition-colors',
 } as const
 
+
+

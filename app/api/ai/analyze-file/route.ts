@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AnalyzeFileResponse, FileAnalysisResult } from '@/types'
-import { MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_TEXT_LENGTH } from '@/lib/constants'
+import { MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_TEXT_LENGTH, MAX_PDF_SIZE_MB, MAX_OTHER_FILE_SIZE_MB } from '@/lib/constants'
+
+// Vercel 함수 실행 시간 제한: 60초 (Pro 플랜 기준)
+export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,11 +22,11 @@ export async function POST(request: NextRequest) {
     // 파일 크기 체크
     const fileExtension = file.name.split('.').pop()?.toLowerCase()
     const maxSize = fileExtension === 'pdf' ? MAX_PDF_SIZE_BYTES : MAX_OTHER_FILE_SIZE_BYTES
-    const maxSizeMB = fileExtension === 'pdf' ? 50 : 5
+    const maxSizeMB = fileExtension === 'pdf' ? MAX_PDF_SIZE_MB : MAX_OTHER_FILE_SIZE_MB
     
     if (file.size > maxSize) {
       return NextResponse.json<AnalyzeFileResponse>(
-        { success: false, error: `파일 용량이 너무 큽니다. ${fileExtension === 'pdf' ? 'PDF는' : '파일은'} 최대 ${maxSizeMB}MB까지 지원합니다.` },
+        { success: false, error: `파일 용량이 너무 큽니다. ${fileExtension === 'pdf' ? 'PDF는' : '파일은'} 최대 ${maxSizeMB}MB까지 지원합니다. 파일을 압축하거나 분할해주세요.` },
         { status: 413 }
       )
     }
@@ -63,20 +66,50 @@ export async function POST(request: NextRequest) {
         // pdf-parse를 require로 로드 (CommonJS 모듈)
         // @ts-ignore - pdf-parse는 CommonJS 모듈로 default export가 없음
         const pdfParse = require('pdf-parse')
-        const pdfData = await pdfParse(buffer)
-        textContent = pdfData.text
+        
+        // PDF 파싱 옵션 설정 (메모리 최적화)
+        const parseOptions = {
+          // 최대 페이지 수 제한 (메모리 절약)
+          max: 0, // 0 = 모든 페이지
+          // 버전 체크 비활성화 (성능 향상)
+          version: '1.10.100',
+        }
+        
+        // 타임아웃 설정 (30초 - 더 짧게 설정하여 빠른 실패)
+        const parsePromise = pdfParse(buffer, parseOptions)
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('PDF 파싱 시간이 초과되었습니다. 파일이 너무 복잡하거나 크기가 큽니다.')), 30000)
+        )
+        
+        const pdfData = await Promise.race([parsePromise, timeoutPromise]) as any
+        textContent = pdfData.text || ''
         originalLength = textContent.length
+        
+        // 메모리 정리
+        buffer.fill(0)
         
         if (!textContent || textContent.trim().length === 0) {
           return NextResponse.json<AnalyzeFileResponse>(
-            { success: false, error: 'PDF 파일에서 텍스트를 추출할 수 없습니다. 텍스트가 포함된 PDF인지 확인해주세요.' },
+            { success: false, error: 'PDF 파일에서 텍스트를 추출할 수 없습니다. 텍스트가 포함된 PDF인지 확인해주세요. (이미지만 포함된 PDF는 지원하지 않습니다)' },
             { status: 400 }
           )
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('PDF 파싱 오류:', error)
+        
+        // 구체적인 오류 메시지 제공
+        let errorMessage = 'PDF 파일을 읽는 중 오류가 발생했습니다.'
+        
+        if (error?.message?.includes('시간이 초과')) {
+          errorMessage = 'PDF 파일 분석 시간이 초과되었습니다. 파일이 너무 크거나 복잡합니다. 파일을 압축하거나 더 작은 파일로 분할해주세요.'
+        } else if (error?.message?.includes('memory') || error?.message?.includes('메모리')) {
+          errorMessage = 'PDF 파일이 너무 커서 메모리 부족이 발생했습니다. 파일을 압축하거나 30MB 이하로 줄여주세요.'
+        } else if (error?.message?.includes('corrupt') || error?.message?.includes('손상')) {
+          errorMessage = 'PDF 파일이 손상되었거나 읽을 수 없는 형식입니다. 다른 PDF 파일을 시도해주세요.'
+        }
+        
         return NextResponse.json<AnalyzeFileResponse>(
-          { success: false, error: 'PDF 파일을 읽는 중 오류가 발생했습니다.' },
+          { success: false, error: errorMessage },
           { status: 500 }
         )
       }
@@ -225,10 +258,22 @@ export async function POST(request: NextRequest) {
       success: true,
       data: result,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('파일 분석 오류:', error)
+    
+    // 구체적인 오류 메시지 제공
+    let errorMessage = '서버 오류가 발생했습니다.'
+    
+    if (error?.message?.includes('timeout') || error?.message?.includes('타임아웃')) {
+      errorMessage = '요청 시간이 초과되었습니다. 파일이 너무 크거나 복잡합니다. 잠시 후 다시 시도하거나 파일을 압축해주세요.'
+    } else if (error?.message?.includes('memory') || error?.message?.includes('메모리')) {
+      errorMessage = '메모리 부족으로 파일을 처리할 수 없습니다. 파일 크기를 줄여주세요.'
+    } else if (error?.message?.includes('ENOENT') || error?.message?.includes('파일을 찾을 수 없')) {
+      errorMessage = '파일을 찾을 수 없습니다. 파일을 다시 업로드해주세요.'
+    }
+    
     return NextResponse.json<AnalyzeFileResponse>(
-      { success: false, error: '서버 오류가 발생했습니다.' },
+      { success: false, error: errorMessage },
       { status: 500 }
     )
   }

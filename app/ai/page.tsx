@@ -28,9 +28,21 @@ export default function AiOnboardingAndChatPage() {
 
     const maxSize = extension === 'pdf' ? MAX_PDF_SIZE_BYTES : MAX_OTHER_FILE_SIZE_BYTES
     const maxSizeMB = extension === 'pdf' ? MAX_PDF_SIZE_MB : MAX_OTHER_FILE_SIZE_MB
+    const fileSizeMB = selectedFile.size / (1024 * 1024)
+    
     if (selectedFile.size > maxSize) {
-      alert(`파일 크기가 너무 큽니다. (최대 ${maxSizeMB}MB)`)
+      alert(`파일 크기가 너무 큽니다. (${fileSizeMB.toFixed(1)}MB / 최대 ${maxSizeMB}MB)\n\n파일을 압축하거나 분할해주세요.`)
       return
+    }
+    
+    // PDF 파일의 경우 추가 경고 (20MB 이상)
+    if (extension === 'pdf' && fileSizeMB > 20) {
+      const shouldContinue = confirm(
+        `파일 크기가 큽니다 (${fileSizeMB.toFixed(1)}MB). 분석에 시간이 오래 걸리거나 실패할 수 있습니다.\n\n계속하시겠습니까?`
+      )
+      if (!shouldContinue) {
+        return
+      }
     }
 
     setFile(selectedFile)
@@ -85,6 +97,11 @@ export default function AiOnboardingAndChatPage() {
         body: formData,
       })
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `서버 오류 (${response.status})`)
+      }
+
       const data = await response.json()
 
       if (data.success && data.data) {
@@ -95,9 +112,10 @@ export default function AiOnboardingAndChatPage() {
       } else {
         alert(data.error || '분석에 실패했습니다. 잠시 후 다시 시도해 주세요.')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis error:', error)
-      alert('분석 중 오류가 발생했습니다.')
+      const errorMessage = error?.message || error?.error || '분석 중 오류가 발생했습니다.'
+      alert(errorMessage)
     } finally {
       setIsAnalyzing(false)
     }
@@ -172,7 +190,10 @@ export default function AiOnboardingAndChatPage() {
                     <div>
                       <p className="text-white font-medium mb-2">파일을 드래그하거나 클릭하여 업로드</p>
                       <p className="text-gray-400 text-sm">
-                        txt, md, pdf, docx (PDF 최대 50MB, 기타 최대 5MB)
+                        txt, md, pdf, docx (PDF 최대 {MAX_PDF_SIZE_MB}MB, 기타 최대 {MAX_OTHER_FILE_SIZE_MB}MB)
+                      </p>
+                      <p className="text-gray-500 text-xs mt-1">
+                        ※ PDF는 20MB 이하를 권장합니다
                       </p>
                     </div>
                     <button

@@ -32,3 +32,5 @@ export function getCategoryLabel(slug: string): string {
   return CATEGORY_MAP[slug] || slug
 }
 
+
+

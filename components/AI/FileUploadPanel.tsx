@@ -129,7 +129,7 @@ export default function FileUploadPanel({
             <div className="text-gray-400 text-4xl">📄</div>
             <div>
               <p className="text-white mb-2">파일을 드래그하거나 클릭하여 업로드</p>
-              <p className="text-gray-400 text-sm">txt, md, pdf, docx (PDF 최대 50MB, 기타 최대 5MB)</p>
+              <p className="text-gray-400 text-sm">txt, md, pdf, docx (PDF 최대 {MAX_PDF_SIZE_MB}MB, 기타 최대 {MAX_OTHER_FILE_SIZE_MB}MB)</p>
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}
