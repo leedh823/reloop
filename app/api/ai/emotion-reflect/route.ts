@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY?.trim()
     if (!apiKey) {
       console.error('OPENAI_API_KEY가 설정되지 않았습니다.')
       return NextResponse.json(
@@ -76,7 +76,30 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('OpenAI API 오류:', errorData)
+      console.error('OpenAI API 오류:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        apiKeyLength: apiKey?.length,
+        apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : 'undefined'
+      })
+      
+      // 403 오류에 대한 구체적인 메시지
+      if (response.status === 403) {
+        return NextResponse.json(
+          { error: 'OpenAI API 접근이 거부되었습니다. API 키를 확인하거나 관리자에게 문의하세요.' },
+          { status: 403 }
+        )
+      }
+      
+      // 401 오류 (인증 실패)
+      if (response.status === 401) {
+        return NextResponse.json(
+          { error: 'OpenAI API 인증에 실패했습니다. API 키가 올바른지 확인하세요.' },
+          { status: 401 }
+        )
+      }
+      
       return NextResponse.json(
         { error: 'AI 응답을 생성하는 중 오류가 발생했습니다.' },
         { status: 500 }
