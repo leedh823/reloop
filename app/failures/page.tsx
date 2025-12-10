@@ -7,17 +7,18 @@ export default async function FailuresPage() {
   const failures = getAllFailures()
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-black">
       {/* 가로 카드 캐러셀 섹션 */}
       <FailureCardCarousel failures={failures} />
 
-      {/* 기존 그리드 리스트 섹션 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">실패 목록</h1>
+      {/* 실패 목록 섹션 */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 py-8 md:py-12">
+        {/* 헤더 영역 */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">실패 목록</h1>
           <Link
             href="/submit"
-            className="bg-reloop-blue text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            className="bg-reloop-blue text-white px-6 py-3 h-12 rounded-lg font-semibold hover:bg-blue-600 transition-colors text-center w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:ring-offset-2 focus:ring-offset-black"
           >
             새 실패 공유하기
           </Link>
@@ -25,7 +26,7 @@ export default async function FailuresPage() {
 
         {failures.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-500 text-lg mb-4">아직 공유된 실패가 없습니다.</p>
+            <p className="text-gray-400 text-base md:text-lg mb-4">아직 공유된 실패가 없습니다.</p>
             <Link
               href="/submit"
               className="text-reloop-blue hover:underline font-semibold"
@@ -34,32 +35,32 @@ export default async function FailuresPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-4 md:space-y-6">
             {failures.map((failure) => (
               <Link
                 key={failure.id}
                 href={`/failures/${failure.id}`}
-                className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow"
+                className="block bg-[#1a1a1a] border border-white/10 rounded-lg p-4 md:p-6 hover:border-reloop-blue/50 hover:shadow-lg hover:shadow-reloop-blue/10 transition-all duration-200 shadow-md shadow-black/20"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <h2 className="text-xl font-semibold text-gray-900 line-clamp-2">
+                <div className="space-y-3 md:space-y-4">
+                  <h2 className="text-lg md:text-xl font-semibold text-white line-clamp-2 leading-tight">
                     {failure.title}
                   </h2>
+                  <p className="text-gray-400 text-sm md:text-base leading-relaxed line-clamp-3">
+                    {failure.summary}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-3 py-1 bg-reloop-blue/20 text-reloop-blue text-xs rounded-full font-medium">
+                      {failure.category}
+                    </span>
+                    <span className="px-3 py-1 bg-reloop-gold/20 text-reloop-gold text-xs rounded-full font-medium">
+                      {failure.emotionTag}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 pt-2 border-t border-white/10">
+                    {new Date(failure.createdAt).toLocaleDateString('ko-KR')}
+                  </p>
                 </div>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {failure.summary}
-                </p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="px-3 py-1 bg-reloop-blue/10 text-reloop-blue text-xs rounded-full">
-                    {failure.category}
-                  </span>
-                  <span className="px-3 py-1 bg-reloop-gold/10 text-reloop-gold text-xs rounded-full">
-                    {failure.emotionTag}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400">
-                  {new Date(failure.createdAt).toLocaleDateString('ko-KR')}
-                </p>
               </Link>
             ))}
           </div>

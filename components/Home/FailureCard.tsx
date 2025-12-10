@@ -17,7 +17,7 @@ export default function FailureCard({ failure, discordThreadUrl = '#' }: Failure
   return (
     <Link
       href={`/failures/${failure.id}`}
-      className="group bg-[#1a1a1a] border border-white/10 rounded-lg overflow-hidden hover:border-reloop-blue/50 transition-all duration-200 hover:shadow-lg hover:shadow-reloop-blue/10"
+      className="group bg-[#1a1a1a] border border-white/10 rounded-lg overflow-hidden hover:border-reloop-blue/50 transition-all duration-200 hover:shadow-lg hover:shadow-reloop-blue/10 shadow-md shadow-black/20"
     >
       {/* 썸네일 이미지 */}
       <div className="relative w-full aspect-video bg-[#0f0f0f] overflow-hidden">
@@ -37,7 +37,7 @@ export default function FailureCard({ failure, discordThreadUrl = '#' }: Failure
       </div>
 
       {/* 텍스트 영역 */}
-      <div className="p-4 space-y-3">
+      <div className="p-4 md:p-5 lg:p-6 space-y-3">
         {/* 태그 */}
         <div className="flex flex-wrap gap-2">
           <span className="px-2 py-1 bg-reloop-blue/20 text-reloop-blue text-xs rounded-full font-medium">

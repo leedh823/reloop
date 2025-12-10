@@ -4,33 +4,33 @@ import { PrimaryButtonLink, SecondaryButtonLink } from '@/components/UI/Button'
 
 export default function HeroSection() {
   return (
-    <section className="bg-black py-16 md:py-24">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+    <section className="bg-black py-12 md:py-16 lg:py-24">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-5 md:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* 좌측 텍스트 영역 */}
-          <div className="space-y-8">
-            <div className="space-y-6">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+          <div className="space-y-6 md:space-y-8">
+            <div className="space-y-4 md:space-y-6">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
                 실패를 쌓아 올리는
                 <br />
                 <span className="text-reloop-blue">포트폴리오</span>
               </h1>
-              <p className="text-lg md:text-xl text-gray-300 leading-relaxed max-w-xl">
+              <p className="text-base sm:text-lg md:text-xl text-gray-300 leading-relaxed max-w-2xl">
                 Reloop은 실패를 공유하고, AI와 함께 정리하고, Discord에서 다시 도전하는 사람들의 커뮤니티입니다.
               </p>
             </div>
 
             {/* 버튼 그룹 */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <PrimaryButtonLink href="/submit">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <PrimaryButtonLink href="/submit" className="w-full sm:w-auto">
                 실패 올리기
               </PrimaryButtonLink>
-              <SecondaryButtonLink href="/ai">
+              <SecondaryButtonLink href="/ai" className="w-full sm:w-auto">
                 AI에게 정리 요청하기
               </SecondaryButtonLink>
               <Link
                 href="#"
-                className="bg-[#111111] text-white border border-[#2A2A2A] px-6 py-3 rounded-lg font-semibold hover:bg-[#1c1c1c] transition-colors text-center"
+                className="bg-[#111111] text-white border border-[#2A2A2A] px-6 py-3 h-12 rounded-lg font-semibold hover:bg-[#1c1c1c] transition-colors text-center w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:ring-offset-2 focus:ring-offset-black"
               >
                 Discord에서 이야기하기
               </Link>

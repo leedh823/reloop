@@ -152,7 +152,7 @@ export default function Home() {
       />
 
       {/* 카드 그리드 */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      <section className="max-w-[1440px] mx-auto px-4 sm:px-5 md:px-6 lg:px-8 py-8 md:py-12">
         {loading ? (
           <div className="text-center py-20">
             <p className="text-[#B3B3B3]">로딩 중...</p>
@@ -160,7 +160,7 @@ export default function Home() {
         ) : filteredFailures.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {filteredFailures.map((failure) => (
               <FailureCard key={failure.id} failure={failure} />
             ))}

@@ -136,18 +136,16 @@ export default function AiOnboardingAndChatPage() {
   return (
     <div className="min-h-screen bg-black">
       {/* 메인 영역 */}
-      <main className="max-w-[1040px] mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+      <main className="max-w-md md:max-w-2xl mx-auto px-4 sm:px-5 md:px-6 py-8 md:py-12">
         {!analysisResult ? (
-          <div className="space-y-8">
+          <div className="space-y-6 md:space-y-8">
             {/* 섹션 1: 온보딩 헤더 */}
-            <section className="space-y-4 text-center md:text-left">
-              <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+            <section className="space-y-3 md:space-y-4">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
                 AI에게 실패 기록을 맡겨보세요.
               </h1>
-              <p className="text-lg md:text-xl text-gray-300 leading-relaxed max-w-2xl">
-                PDF나 글 파일을 올리면, AI가 감정과 내용의 흐름을 정리해주고
-                <br />
-                그 내용을 바탕으로 함께 이야기할 수 있습니다.
+              <p className="text-base md:text-lg text-gray-300 leading-relaxed max-w-2xl">
+                PDF나 글 파일을 올리면, AI가 감정과 내용의 흐름을 정리해주고 그 내용을 바탕으로 함께 이야기할 수 있습니다.
               </p>
               <p className="text-xs text-gray-400">
                 ※ 이 기능은 전문적인 상담이나 치료가 아닌, 감정 정리를 돕는 도구입니다.
@@ -160,16 +158,16 @@ export default function AiOnboardingAndChatPage() {
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
-                className={`bg-[#111] border-2 border-dashed rounded-xl p-6 md:p-8 text-center transition-colors ${
+                className={`bg-[#111] border-2 border-dashed rounded-xl p-6 md:p-8 min-h-[200px] md:min-h-[240px] flex flex-col items-center justify-center text-center transition-colors ${
                   isDragging
                     ? 'border-reloop-blue bg-reloop-blue/10'
                     : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
                 }`}
               >
                 {file ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 w-full">
                     <div className="text-reloop-blue text-5xl mb-3">✓</div>
-                    <p className="text-white font-medium text-lg">{file.name}</p>
+                    <p className="text-white font-medium text-base md:text-lg break-words">{file.name}</p>
                     <p className="text-gray-400 text-sm">{formatFileSize(file.size)}</p>
                     <button
                       type="button"
@@ -185,11 +183,11 @@ export default function AiOnboardingAndChatPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 w-full">
                     <div className="text-gray-400 text-5xl">📄</div>
-                    <div>
-                      <p className="text-white font-medium mb-2">파일을 드래그하거나 클릭하여 업로드</p>
-                      <p className="text-gray-400 text-sm">
+                    <div className="space-y-2">
+                      <p className="text-white font-medium text-base md:text-lg">파일을 드래그하거나 클릭하여 업로드</p>
+                      <p className="text-gray-400 text-sm leading-relaxed max-w-md mx-auto">
                         txt, md, pdf, docx (PDF 최대 {MAX_PDF_SIZE_MB}MB, 기타 최대 {MAX_OTHER_FILE_SIZE_MB}MB)
                       </p>
                       <p className="text-gray-500 text-xs mt-1">
@@ -199,7 +197,7 @@ export default function AiOnboardingAndChatPage() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="bg-reloop-blue text-white px-8 py-3 rounded-full font-semibold hover:bg-blue-600 transition-colors"
+                      className="bg-reloop-blue text-white px-6 py-3 h-12 rounded-full font-semibold hover:bg-blue-600 transition-colors w-full md:w-auto md:px-8 focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:ring-offset-2 focus:ring-offset-black"
                     >
                       파일 선택
                     </button>
@@ -221,58 +219,56 @@ export default function AiOnboardingAndChatPage() {
             </section>
 
             {/* 섹션 3: 추가 정보 입력 */}
-            <section>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
-                    이 파일은 어떤 실패에 대한 기록인가요? (선택)
-                  </label>
-                  <input
-                    id="description"
-                    type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="예: 스타트업 면접 실패"
-                    className="w-full px-4 py-2 bg-[#181818] border border-[#333333] rounded-lg text-[#F5F5F5] placeholder:text-[#777777] focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
-                  />
-                </div>
+            <section className="space-y-4">
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
+                  이 파일은 어떤 실패에 대한 기록인가요? (선택)
+                </label>
+                <input
+                  id="description"
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="예: 스타트업 면접 실패"
+                  className="w-full h-12 md:h-14 px-4 py-3 bg-[#181818] border border-[#333333] rounded-lg text-base text-[#F5F5F5] placeholder:text-[#777777] focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
+                />
+              </div>
 
-                <div>
-                  <label htmlFor="emotionTag" className="block text-sm font-medium text-gray-300 mb-2">
-                    지금 느끼는 감정 (선택)
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="emotionTag"
-                      value={emotionTag}
-                      onChange={(e) => setEmotionTag(e.target.value)}
-                      className="w-full px-4 py-2 bg-[#181818] border border-[#333333] rounded-lg text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent appearance-none pr-10"
-                    >
-                      <option value="" className="bg-[#181818]">선택하세요</option>
-                      {EMOTIONS.filter((e) => e.id !== 'all').map((emotion) => (
-                        <option key={emotion.id} value={emotion.label} className="bg-[#181818]">
-                          {emotion.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <svg className="w-5 h-5 text-[#B3B3B3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
+              <div>
+                <label htmlFor="emotionTag" className="block text-sm font-medium text-gray-300 mb-2">
+                  지금 느끼는 감정 (선택)
+                </label>
+                <div className="relative">
+                  <select
+                    id="emotionTag"
+                    value={emotionTag}
+                    onChange={(e) => setEmotionTag(e.target.value)}
+                    className="w-full h-12 md:h-14 px-4 py-3 bg-[#181818] border border-[#333333] rounded-lg text-base text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent appearance-none pr-10"
+                  >
+                    <option value="" className="bg-[#181818]">선택하세요</option>
+                    {EMOTIONS.filter((e) => e.id !== 'all').map((emotion) => (
+                      <option key={emotion.id} value={emotion.label} className="bg-[#181818]">
+                        {emotion.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-5 h-5 text-[#B3B3B3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </div>
                 </div>
               </div>
             </section>
 
             {/* 섹션 4: 버튼 영역 */}
-            <section className="flex justify-center">
+            <section>
               <PrimaryButton
                 onClick={handleAnalyze}
                 disabled={!file || isAnalyzing}
                 fullWidth
                 rounded="full"
-                className="md:max-w-sm"
+                className="w-full"
               >
                 {isAnalyzing ? (
                   <>
@@ -286,11 +282,9 @@ export default function AiOnboardingAndChatPage() {
             </section>
 
             {/* 섹션 5: 향후 섹션 placeholder */}
-            <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6 text-center">
-              <p className="text-gray-400 text-sm leading-relaxed">
-                분석이 완료되면 여기에서 요약과 감정 정리 결과를 볼 수 있어요.
-                <br />
-                또, 분석 결과를 바탕으로 AI와 대화할 수 있는 채팅이 이 아래에 나타납니다.
+            <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-4 md:p-6 text-center">
+              <p className="text-gray-400 text-sm leading-relaxed max-w-md mx-auto">
+                분석이 완료되면 여기에서 요약과 감정 정리 결과를 볼 수 있어요. 또, 분석 결과를 바탕으로 AI와 대화할 수 있는 채팅이 이 아래에 나타납니다.
               </p>
             </section>
           </div>

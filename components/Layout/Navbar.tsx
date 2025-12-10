@@ -16,16 +16,16 @@ export default function Navbar() {
   ]
 
   return (
-    <nav className="bg-black/80 backdrop-blur-sm border-b border-[#2a2a2a] sticky top-0 z-50 h-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+    <nav className="bg-black/80 backdrop-blur-sm border-b border-[#2a2a2a] sticky top-0 z-50 h-14 md:h-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 h-full">
         <div className="flex justify-between items-center h-full">
           {/* 로고 */}
           <Link href="/" className="flex items-center">
-            <span className="text-2xl font-bold text-reloop-blue">Reloop</span>
+            <span className="text-xl md:text-2xl font-bold text-reloop-blue">Reloop</span>
           </Link>
 
           {/* 데스크탑 메뉴 */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -44,7 +44,7 @@ export default function Navbar() {
             ))}
             <Link
               href="/submit"
-              className="bg-reloop-blue text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-600 transition-colors"
+              className="bg-reloop-blue text-white px-5 py-2 md:px-6 rounded-full font-semibold hover:bg-blue-600 transition-colors text-sm md:text-base"
             >
               실패 공유하기
             </Link>
@@ -53,7 +53,7 @@ export default function Navbar() {
           {/* 모바일 햄버거 버튼 */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden text-white p-2"
+            className="md:hidden text-white p-2 -mr-2"
             aria-label="메뉴 열기"
           >
             <svg
@@ -84,14 +84,14 @@ export default function Navbar() {
 
       {/* 모바일 메뉴 */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-black/95 backdrop-blur-sm border-b border-[#2a2a2a]">
-          <div className="px-4 py-4 space-y-4">
+        <div className="md:hidden absolute top-14 left-0 right-0 bg-black/95 backdrop-blur-sm border-b border-[#2a2a2a]">
+          <div className="px-4 py-3 space-y-3">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`block py-2 transition-colors ${
+                className={`block py-2.5 transition-colors ${
                   isActive(link.href)
                     ? 'text-reloop-blue font-semibold'
                     : 'text-[#e5e5e5] hover:text-white'
