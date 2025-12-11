@@ -13,6 +13,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Supabase Edge Functions 사용 여부 확인
+    const useSupabase = process.env.USE_SUPABASE_EDGE_FUNCTIONS === 'true'
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    
+    if (useSupabase && supabaseUrl) {
+      try {
+        const supabaseResponse = await fetch(
+          `${supabaseUrl}/functions/v1/openai-chat-with-file`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+            },
+            body: JSON.stringify({ message, analysisSummary, tags }),
+          }
+        )
+
+        if (!supabaseResponse.ok) {
+          const errorData = await supabaseResponse.json().catch(() => ({}))
+          return NextResponse.json(
+            { error: errorData.error || 'Supabase Edge Function 호출 실패' },
+            { status: supabaseResponse.status }
+          )
+        }
+
+        const data = await supabaseResponse.json()
+        return NextResponse.json(data)
+      } catch (error: any) {
+        console.error('Supabase Edge Function 오류:', error)
+        // Supabase 실패 시 기존 로직으로 폴백
+      }
+    }
+
     const apiKey = process.env.OPENAI_API_KEY?.trim()
     if (!apiKey) {
       console.error('OPENAI_API_KEY가 설정되지 않았습니다.')
@@ -46,12 +80,15 @@ ${tags.join(', ')}
 사용자 메시지:
 ${message}`
 
+    // Authorization 헤더 구성 (명시적으로 공백 제거)
+    const authHeader = `Bearer ${apiKey.trim()}`
+    
     // OpenAI API 호출
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': authHeader,
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -65,34 +102,61 @@ ${message}`
     })
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      console.error('OpenAI API 오류:', {
+      const responseText = await response.text()
+      let errorData: any = {}
+      
+      try {
+        errorData = JSON.parse(responseText)
+      } catch {
+        errorData = { raw: responseText.substring(0, 500) }
+      }
+      
+      console.error('OpenAI API 오류 (상세):', {
         status: response.status,
         statusText: response.statusText,
         error: errorData,
         apiKeyLength: apiKey?.length,
-        apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : 'undefined'
+        apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : 'undefined',
+        authHeaderPrefix: authHeader.substring(0, 20),
+        responseText: responseText.substring(0, 500),
       })
       
       // 403 오류에 대한 구체적인 메시지
       if (response.status === 403) {
+        let errorMessage = 'OpenAI API 접근이 거부되었습니다.'
+        
+        if (errorData?.error?.message) {
+          errorMessage = errorData.error.message
+        } else if (errorData?.message) {
+          errorMessage = errorData.message
+        }
+        
+        if (errorMessage.includes('insufficient_quota') || errorMessage.includes('quota')) {
+          errorMessage = 'OpenAI API 사용량 한도에 도달했습니다. 계정 크레딧을 확인해주세요.'
+        } else if (errorMessage.includes('billing') || errorMessage.includes('payment')) {
+          errorMessage = 'OpenAI API 결제 정보가 필요합니다. 계정 설정을 확인해주세요.'
+        } else if (errorMessage.includes('organization') || errorMessage.includes('org')) {
+          errorMessage = 'OpenAI API 조직 설정에 문제가 있습니다. API 키의 조직 권한을 확인해주세요.'
+        }
+        
         return NextResponse.json(
-          { error: 'OpenAI API 접근이 거부되었습니다. API 키를 확인하거나 관리자에게 문의하세요.' },
+          { error: errorMessage },
           { status: 403 }
         )
       }
       
       // 401 오류 (인증 실패)
       if (response.status === 401) {
+        const authError = errorData?.error?.message || errorData?.message || '인증 실패'
         return NextResponse.json(
-          { error: 'OpenAI API 인증에 실패했습니다. API 키가 올바른지 확인하세요.' },
+          { error: `OpenAI API 인증에 실패했습니다: ${authError}` },
           { status: 401 }
         )
       }
       
       return NextResponse.json(
-        { error: 'AI 응답을 생성하는 중 오류가 발생했습니다.' },
-        { status: 500 }
+        { error: `AI 응답을 생성하는 중 오류가 발생했습니다. (${response.status} ${response.statusText})` },
+        { status: response.status }
       )
     }
 

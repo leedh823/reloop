@@ -6,13 +6,16 @@ import { NextRequest, NextResponse } from 'next/server'
  */
 export async function GET(request: NextRequest) {
   // 보안: 특정 조건에서만 허용 (예: 특정 헤더 또는 쿼리 파라미터)
-  const apiKey = process.env.OPENAI_API_KEY
+  const apiKey = process.env.OPENAI_API_KEY?.trim()
   
   return NextResponse.json({
     hasApiKey: !!apiKey,
     apiKeyLength: apiKey?.length || 0,
     apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : 'undefined',
     apiKeyEndsWith: apiKey ? `...${apiKey.substring(apiKey.length - 4)}` : 'undefined',
+    startsWithSk: apiKey?.startsWith('sk-') || false,
+    rawEnvExists: !!process.env.OPENAI_API_KEY,
+    rawEnvLength: process.env.OPENAI_API_KEY?.length || 0,
     // 실제 키 값은 반환하지 않음 (보안)
   })
 }

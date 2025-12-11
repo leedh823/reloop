@@ -99,7 +99,26 @@ export default function AiOnboardingAndChatPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `서버 오류 (${response.status})`)
+        console.error('분석 API 오류:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        })
+        
+        let errorMessage = errorData.error || `서버 오류 (${response.status})`
+        
+        // 더 구체적인 에러 메시지
+        if (response.status === 403) {
+          errorMessage = errorData.error || 'OpenAI API 접근이 거부되었습니다. 관리자에게 문의해주세요.'
+        } else if (response.status === 401) {
+          errorMessage = 'OpenAI API 인증에 실패했습니다. 관리자에게 문의해주세요.'
+        } else if (response.status === 413) {
+          errorMessage = errorData.error || '파일 크기가 너무 큽니다.'
+        } else if (response.status === 500) {
+          errorMessage = errorData.error || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
@@ -110,7 +129,8 @@ export default function AiOnboardingAndChatPage() {
           setIsChatOpen(true)
         }, 500)
       } else {
-        alert(data.error || '분석에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+        const errorMsg = data.error || '분석에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+        alert(errorMsg)
       }
     } catch (error: any) {
       console.error('Analysis error:', error)

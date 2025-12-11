@@ -19,6 +19,52 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Supabase Edge Functions 사용 여부 확인
+    const useSupabase = process.env.USE_SUPABASE_EDGE_FUNCTIONS === 'true'
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    
+    if (useSupabase && supabaseUrl) {
+      // Supabase Edge Functions로 요청 전달
+      try {
+        const supabaseFormData = new FormData()
+        supabaseFormData.append('file', file)
+        if (description) {
+          supabaseFormData.append('description', description)
+        }
+        if (emotionTag) {
+          supabaseFormData.append('emotionTag', emotionTag)
+        }
+
+        const supabaseResponse = await fetch(
+          `${supabaseUrl}/functions/v1/openai-analyze-file`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+            },
+            body: supabaseFormData,
+          }
+        )
+
+        if (!supabaseResponse.ok) {
+          const errorData = await supabaseResponse.json().catch(() => ({}))
+          return NextResponse.json<AnalyzeFileResponse>(
+            { 
+              success: false, 
+              error: errorData.error || 'Supabase Edge Function 호출 실패' 
+            },
+            { status: supabaseResponse.status }
+          )
+        }
+
+        const data = await supabaseResponse.json()
+        return NextResponse.json<AnalyzeFileResponse>(data)
+      } catch (error: any) {
+        console.error('Supabase Edge Function 오류:', error)
+        // Supabase 실패 시 기존 로직으로 폴백
+      }
+    }
+
     // 파일 크기 체크
     const fileExtension = file.name.split('.').pop()?.toLowerCase()
     const maxSize = fileExtension === 'pdf' ? MAX_PDF_SIZE_BYTES : MAX_OTHER_FILE_SIZE_BYTES
@@ -191,12 +237,23 @@ export async function POST(request: NextRequest) {
       userMessage += `\n\n[현재 감정 태그] ${emotionTag}`
     }
 
+    // Authorization 헤더 구성 (명시적으로 공백 제거)
+    const authHeader = `Bearer ${apiKey.trim()}`
+    
+    console.log('OpenAI API 호출 준비:', {
+      apiKeyLength: apiKey.length,
+      apiKeyPrefix: apiKey.substring(0, 7),
+      authHeaderLength: authHeader.length,
+      authHeaderPrefix: authHeader.substring(0, 15),
+      model: 'gpt-4o-mini',
+    })
+    
     // OpenAI API 호출
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': authHeader,
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -210,7 +267,14 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+      const responseText = await response.text()
+      let errorData: any = {}
+      
+      try {
+        errorData = JSON.parse(responseText)
+      } catch {
+        errorData = { raw: responseText.substring(0, 500) }
+      }
       
       // 상세한 오류 로깅
       const errorInfo = {
@@ -221,9 +285,11 @@ export async function POST(request: NextRequest) {
         apiKeyLength: apiKey?.length || 0,
         apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : 'undefined',
         apiKeyEndsWith: apiKey ? `...${apiKey.substring(apiKey.length - 4)}` : 'undefined',
+        authHeaderPrefix: authHeader.substring(0, 20),
+        responseText: responseText.substring(0, 500),
       }
       
-      console.error('OpenAI API 오류:', JSON.stringify(errorInfo, null, 2))
+      console.error('OpenAI API 오류 (상세):', JSON.stringify(errorInfo, null, 2))
       
       // 403 오류에 대한 구체적인 메시지
       if (response.status === 403) {
@@ -231,12 +297,21 @@ export async function POST(request: NextRequest) {
         let errorMessage = 'OpenAI API 접근이 거부되었습니다.'
         
         if (errorData?.error?.message) {
-          errorMessage += ` (${errorData.error.message})`
+          errorMessage = `${errorData.error.message}`
         } else if (errorData?.error?.code) {
-          errorMessage += ` (코드: ${errorData.error.code})`
+          errorMessage = `오류 코드: ${errorData.error.code}`
+        } else if (errorData?.message) {
+          errorMessage = errorData.message
         }
         
-        errorMessage += ' API 키를 확인하거나 관리자에게 문의하세요.'
+        // 더 구체적인 안내
+        if (errorMessage.includes('insufficient_quota') || errorMessage.includes('quota')) {
+          errorMessage = 'OpenAI API 사용량 한도에 도달했습니다. 계정 크레딧을 확인해주세요.'
+        } else if (errorMessage.includes('billing') || errorMessage.includes('payment')) {
+          errorMessage = 'OpenAI API 결제 정보가 필요합니다. 계정 설정을 확인해주세요.'
+        } else if (errorMessage.includes('organization') || errorMessage.includes('org')) {
+          errorMessage = 'OpenAI API 조직 설정에 문제가 있습니다. API 키의 조직 권한을 확인해주세요.'
+        }
         
         return NextResponse.json<AnalyzeFileResponse>(
           { 
@@ -249,18 +324,22 @@ export async function POST(request: NextRequest) {
       
       // 401 오류 (인증 실패)
       if (response.status === 401) {
+        const authError = errorData?.error?.message || errorData?.message || '인증 실패'
         return NextResponse.json<AnalyzeFileResponse>(
           { 
             success: false, 
-            error: 'OpenAI API 인증에 실패했습니다. API 키가 올바른지 확인하세요.' 
+            error: `OpenAI API 인증에 실패했습니다: ${authError}` 
           },
           { status: 401 }
         )
       }
       
       return NextResponse.json<AnalyzeFileResponse>(
-        { success: false, error: '분석에 실패했습니다. 나중에 다시 시도해 주세요.' },
-        { status: 500 }
+        { 
+          success: false, 
+          error: `분석에 실패했습니다. (${response.status} ${response.statusText})` 
+        },
+        { status: response.status }
       )
     }
 

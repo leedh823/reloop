@@ -79,7 +79,24 @@ export default function ChatPanel({
       })
 
       if (!response.ok) {
-        throw new Error('API 요청 실패')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API 요청 실패:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        })
+        
+        let errorMsg = '지금은 연결이 조금 불안정해요. 잠시 후 다시 시도해볼까요?'
+        
+        if (response.status === 403) {
+          errorMsg = errorData?.error || 'OpenAI API 접근이 거부되었습니다. 관리자에게 문의해주세요.'
+        } else if (response.status === 401) {
+          errorMsg = 'OpenAI API 인증에 실패했습니다. 관리자에게 문의해주세요.'
+        } else if (errorData?.error) {
+          errorMsg = errorData.error
+        }
+        
+        throw new Error(errorMsg)
       }
 
       const data = await response.json()
@@ -91,12 +108,12 @@ export default function ChatPanel({
       }
 
       setMessages((prev) => [...prev, assistantMessage])
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error)
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: '지금은 연결이 조금 불안정해요. 잠시 후 다시 시도해볼까요?',
+        content: error?.message || '지금은 연결이 조금 불안정해요. 잠시 후 다시 시도해볼까요?',
         createdAt: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, errorMessage])

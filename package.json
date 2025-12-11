@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.87.1",
     "next": "^14.0.0",
     "pdf-parse": "^2.4.5",
     "react": "^18.2.0",
@@ -26,5 +27,4 @@
     "typescript": "^5.0.0"
   }
 }
-
 
