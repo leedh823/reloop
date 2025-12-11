@@ -7,8 +7,9 @@ import { MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_TEXT_LENGTH, MAX_PDF
 export const runtime = 'nodejs'
 
 // Vercel 함수 실행 시간 제한: 60초 (Pro 플랜 기준)
-// 로컬 개발에서는 더 길게 설정 가능
-export const maxDuration = process.env.NODE_ENV === 'production' ? 60 : 120
+// Next.js는 조건부 표현식을 지원하지 않으므로 정적 값 사용
+// vercel.json에서도 동일하게 설정됨
+export const maxDuration = 60
 
 // Next.js App Router는 기본적으로 큰 파일을 지원하지만, 명시적으로 설정
 // bodyParser는 Pages Router에서만 사용 가능, App Router는 자동 처리
