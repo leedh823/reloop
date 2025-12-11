@@ -232,13 +232,19 @@ export async function POST(request: NextRequest) {
         }
         
         // pdf-parse를 require로 로드 (CommonJS 모듈)
-        // @ts-ignore - pdf-parse는 CommonJS 모듈로 default export가 없음
+        // Next.js App Router의 Node.js runtime에서는 require 사용 가능
         let pdfParse: any
         try {
+          // @ts-ignore - pdf-parse는 CommonJS 모듈로 default export가 없음
           pdfParse = require('pdf-parse')
           console.log('[analyze-file] pdf-parse 모듈 로드 완료')
         } catch (error: any) {
-          console.error('[analyze-file] pdf-parse 모듈 로드 실패:', error)
+          console.error('[analyze-file] pdf-parse 모듈 로드 실패:', {
+            message: error?.message,
+            name: error?.name,
+            code: error?.code,
+            stack: error?.stack?.substring(0, 500),
+          })
           throw new Error('PDF 파싱 라이브러리를 로드할 수 없습니다. 서버 설정을 확인해주세요.')
         }
         
@@ -254,23 +260,44 @@ export async function POST(request: NextRequest) {
           // 큰 파일의 경우 타임아웃을 더 길게 설정
         }
         
-        // 타임아웃 설정 (큰 파일을 위해 90초로 증가)
-        const timeoutDuration = file.size > 20 * 1024 * 1024 ? 90000 : 60000
-        const parsePromise = pdfParse(buffer, parseOptions)
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('PDF 파싱 시간이 초과되었습니다. 파일이 너무 복잡하거나 크기가 큽니다.')), timeoutDuration)
-        )
-        
+        // 타임아웃 설정 (큰 파일을 위해 120초로 증가)
+        const timeoutDuration = file.size > 20 * 1024 * 1024 ? 120000 : 90000
         console.log(`[analyze-file] PDF 파싱 시작 (타임아웃: ${timeoutDuration / 1000}초)`)
         
+        // PDF 파싱을 별도 함수로 분리하여 에러 추적 개선
         let pdfData: any
         try {
+          const parsePromise = pdfParse(buffer, parseOptions)
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => {
+              reject(new Error('PDF 파싱 시간이 초과되었습니다. 파일이 너무 복잡하거나 크기가 큽니다.'))
+            }, timeoutDuration)
+          )
+          
           pdfData = await Promise.race([parsePromise, timeoutPromise])
         } catch (parseError: any) {
+          // 파싱 오류를 더 구체적으로 처리
+          console.error('[analyze-file] PDF 파싱 중 오류:', {
+            message: parseError?.message,
+            name: parseError?.name,
+            code: parseError?.code,
+            stack: parseError?.stack?.substring(0, 500),
+          })
+          
           // 타임아웃인지 확인
-          if (parseError?.message?.includes('초과')) {
-            throw parseError
+          if (parseError?.message?.includes('초과') || parseError?.message?.includes('timeout')) {
+            throw new Error(`PDF 파일 분석 시간이 초과되었습니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일이 너무 크거나 복잡합니다. 파일을 압축하거나 더 작은 파일로 분할해주세요.`)
           }
+          
+          // 메모리 오류인지 확인
+          if (parseError?.message?.includes('memory') || 
+              parseError?.message?.includes('메모리') || 
+              parseError?.message?.includes('allocation') ||
+              parseError?.code === 'ENOMEM') {
+            throw new Error(`PDF 파일이 너무 커서 메모리 부족이 발생했습니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일을 압축하거나 30MB 이하로 줄여주세요.`)
+          }
+          
+          // 기타 오류는 원본 메시지와 함께 재발생
           throw parseError
         }
         
@@ -351,24 +378,58 @@ export async function POST(request: NextRequest) {
         let errorMessage = 'PDF 파일을 읽는 중 오류가 발생했습니다.'
         let statusCode = 500
         
-        if (error?.message?.includes('시간이 초과') || error?.message?.includes('timeout') || error?.message?.includes('초과')) {
+        const errorMsg = error?.message || ''
+        const errorName = error?.name || ''
+        const errorCode = error?.code || ''
+        
+        // 타임아웃 오류
+        if (errorMsg.includes('시간이 초과') || 
+            errorMsg.includes('timeout') || 
+            errorMsg.includes('초과') ||
+            errorCode === 'ETIMEDOUT') {
           errorMessage = `PDF 파일 분석 시간이 초과되었습니다. 파일이 너무 크거나 복잡합니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일을 압축하거나 더 작은 파일로 분할해주세요.`
-          statusCode = 408 // Request Timeout
-        } else if (error?.message?.includes('memory') || error?.message?.includes('메모리') || error?.message?.includes('Memory') || error?.message?.includes('heap') || error?.message?.includes('allocation')) {
+          statusCode = 408
+        } 
+        // 메모리 오류
+        else if (errorMsg.includes('memory') || 
+                 errorMsg.includes('메모리') || 
+                 errorMsg.includes('Memory') || 
+                 errorMsg.includes('heap') || 
+                 errorMsg.includes('allocation') ||
+                 errorCode === 'ENOMEM' ||
+                 errorName === 'RangeError') {
           errorMessage = `PDF 파일이 너무 커서 메모리 부족이 발생했습니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일을 압축하거나 30MB 이하로 줄여주세요.`
-          statusCode = 413 // Payload Too Large
-        } else if (error?.message?.includes('corrupt') || error?.message?.includes('손상') || error?.message?.includes('invalid') || error?.message?.includes('malformed')) {
+          statusCode = 413
+        } 
+        // 손상된 파일 오류
+        else if (errorMsg.includes('corrupt') || 
+                 errorMsg.includes('손상') || 
+                 errorMsg.includes('invalid') || 
+                 errorMsg.includes('malformed') ||
+                 errorMsg.includes('Invalid PDF')) {
           errorMessage = 'PDF 파일이 손상되었거나 읽을 수 없는 형식입니다. 다른 PDF 파일을 시도해주세요.'
-          statusCode = 400 // Bad Request
-        } else if (error?.message?.includes('Cannot find module') || error?.message?.includes('require') || error?.message?.includes('모듈')) {
-          errorMessage = 'PDF 파싱 라이브러리를 찾을 수 없습니다. 서버 설정을 확인해주세요.'
-          statusCode = 500 // Internal Server Error
-        } else if (error?.message?.includes('파일을 읽는 중')) {
-          errorMessage = error.message
           statusCode = 400
-        } else {
-          // 일반적인 오류 메시지에 파일 크기 정보 추가
-          errorMessage = `PDF 파일을 읽는 중 오류가 발생했습니다. (파일 크기: ${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일이 너무 크거나 복잡할 수 있습니다. 파일을 압축하거나 더 작은 파일로 시도해주세요.`
+        } 
+        // 모듈 로드 오류
+        else if (errorMsg.includes('Cannot find module') || 
+                 errorMsg.includes('require') || 
+                 errorMsg.includes('모듈') ||
+                 errorCode === 'MODULE_NOT_FOUND') {
+          errorMessage = 'PDF 파싱 라이브러리를 찾을 수 없습니다. 서버 설정을 확인해주세요.'
+          statusCode = 500
+        } 
+        // 파일 읽기 오류
+        else if (errorMsg.includes('파일을 읽는 중') || 
+                 errorMsg.includes('read') ||
+                 errorCode === 'ENOENT') {
+          errorMessage = errorMsg || '파일을 읽는 중 오류가 발생했습니다.'
+          statusCode = 400
+        } 
+        // 기타 오류 - 원본 메시지 포함
+        else {
+          // 원본 오류 메시지가 있으면 포함
+          const originalMsg = errorMsg ? `\n\n오류 상세: ${errorMsg}` : ''
+          errorMessage = `PDF 파일을 읽는 중 오류가 발생했습니다. (파일 크기: ${(file.size / (1024 * 1024)).toFixed(1)}MB)${originalMsg}\n\n파일이 너무 크거나 복잡할 수 있습니다. 파일을 압축하거나 더 작은 파일로 시도해주세요.`
         }
         
         return NextResponse.json<AnalyzeFileResponse>(
