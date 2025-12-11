@@ -37,8 +37,8 @@ export default function AiOnboardingAndChatPage() {
       return
     }
     
-    // PDF 파일의 경우 추가 경고 (20MB 이상)
-    if (extension === 'pdf' && fileSizeMB > 20) {
+    // PDF 파일의 경우 추가 경고 (30MB 이상)
+    if (extension === 'pdf' && fileSizeMB > 30) {
       const shouldContinue = confirm(
         `파일 크기가 큽니다 (${fileSizeMB.toFixed(1)}MB). 분석에 시간이 오래 걸리거나 실패할 수 있습니다.\n\n계속하시겠습니까?`
       )

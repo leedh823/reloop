@@ -127,13 +127,27 @@ export async function POST(request: NextRequest) {
       originalLength = textContent.length
     } else if (fileExtension === 'pdf') {
       try {
+        console.log('[analyze-file] PDF 파싱 시작:', {
+          fileName: file.name,
+          fileSize: file.size,
+          fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+        })
+        
         // PDF 파일을 ArrayBuffer로 읽기
         const arrayBuffer = await file.arrayBuffer()
+        console.log('[analyze-file] ArrayBuffer 생성 완료:', {
+          arrayBufferSize: arrayBuffer.byteLength,
+        })
+        
         const buffer = Buffer.from(arrayBuffer)
+        console.log('[analyze-file] Buffer 생성 완료:', {
+          bufferLength: buffer.length,
+        })
         
         // pdf-parse를 require로 로드 (CommonJS 모듈)
         // @ts-ignore - pdf-parse는 CommonJS 모듈로 default export가 없음
         const pdfParse = require('pdf-parse')
+        console.log('[analyze-file] pdf-parse 모듈 로드 완료')
         
         // PDF 파싱 옵션 설정 (메모리 최적화)
         const parseOptions = {
@@ -149,7 +163,13 @@ export async function POST(request: NextRequest) {
           setTimeout(() => reject(new Error('PDF 파싱 시간이 초과되었습니다. 파일이 너무 복잡하거나 크기가 큽니다.')), 30000)
         )
         
+        console.log('[analyze-file] PDF 파싱 시작 (타임아웃: 30초)')
         const pdfData = await Promise.race([parsePromise, timeoutPromise]) as any
+        console.log('[analyze-file] PDF 파싱 완료:', {
+          textLength: pdfData.text?.length || 0,
+          numPages: pdfData.numpages || 0,
+        })
+        
         textContent = pdfData.text || ''
         originalLength = textContent.length
         
@@ -163,21 +183,44 @@ export async function POST(request: NextRequest) {
           )
         }
       } catch (error: any) {
-        console.error('PDF 파싱 오류:', error)
+        // 상세한 오류 로깅
+        const errorDetails = {
+          message: error?.message || 'Unknown error',
+          stack: error?.stack?.substring(0, 500),
+          name: error?.name,
+          fileSize: file.size,
+          fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+          fileName: file.name,
+        }
+        
+        console.error('PDF 파싱 오류 (상세):', JSON.stringify(errorDetails, null, 2))
         
         // 구체적인 오류 메시지 제공
         let errorMessage = 'PDF 파일을 읽는 중 오류가 발생했습니다.'
         
-        if (error?.message?.includes('시간이 초과')) {
-          errorMessage = 'PDF 파일 분석 시간이 초과되었습니다. 파일이 너무 크거나 복잡합니다. 파일을 압축하거나 더 작은 파일로 분할해주세요.'
-        } else if (error?.message?.includes('memory') || error?.message?.includes('메모리')) {
-          errorMessage = 'PDF 파일이 너무 커서 메모리 부족이 발생했습니다. 파일을 압축하거나 30MB 이하로 줄여주세요.'
-        } else if (error?.message?.includes('corrupt') || error?.message?.includes('손상')) {
+        if (error?.message?.includes('시간이 초과') || error?.message?.includes('timeout') || error?.message?.includes('초과')) {
+          errorMessage = `PDF 파일 분석 시간이 초과되었습니다. 파일이 너무 크거나 복잡합니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일을 압축하거나 더 작은 파일로 분할해주세요.`
+        } else if (error?.message?.includes('memory') || error?.message?.includes('메모리') || error?.message?.includes('Memory') || error?.message?.includes('heap')) {
+          errorMessage = `PDF 파일이 너무 커서 메모리 부족이 발생했습니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일을 압축하거나 30MB 이하로 줄여주세요.`
+        } else if (error?.message?.includes('corrupt') || error?.message?.includes('손상') || error?.message?.includes('invalid')) {
           errorMessage = 'PDF 파일이 손상되었거나 읽을 수 없는 형식입니다. 다른 PDF 파일을 시도해주세요.'
+        } else if (error?.message?.includes('Cannot find module') || error?.message?.includes('require')) {
+          errorMessage = 'PDF 파싱 라이브러리를 찾을 수 없습니다. 서버 설정을 확인해주세요.'
+        } else {
+          // 일반적인 오류 메시지에 파일 크기 정보 추가
+          errorMessage = `PDF 파일을 읽는 중 오류가 발생했습니다. (파일 크기: ${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일이 너무 크거나 복잡할 수 있습니다. 파일을 압축하거나 더 작은 파일로 시도해주세요.`
+        }
+        
+        // 개발 환경에서는 상세 오류를 로그에만 기록
+        if (process.env.NODE_ENV === 'development') {
+          console.error('PDF 파싱 상세 오류:', errorDetails)
         }
         
         return NextResponse.json<AnalyzeFileResponse>(
-          { success: false, error: errorMessage },
+          { 
+            success: false, 
+            error: errorMessage
+          },
           { status: 500 }
         )
       }
