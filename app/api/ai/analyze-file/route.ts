@@ -21,8 +21,18 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // 함수 진입 확인 로그 (가장 먼저 실행)
+  console.log('[analyze-file] POST 함수 진입:', {
+    timestamp: new Date().toISOString(),
+    url: request.url,
+    method: request.method,
+    hasBody: !!request.body,
+  })
+  
   try {
+    console.log('[analyze-file] FormData 파싱 시작')
     const formData = await request.formData()
+    console.log('[analyze-file] FormData 파싱 완료')
     const file = formData.get('file') as File | null
     const description = formData.get('description') as string | null
     const emotionTag = formData.get('emotionTag') as string | null
