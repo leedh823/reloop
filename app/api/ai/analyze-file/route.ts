@@ -682,12 +682,27 @@ export async function POST(request: NextRequest) {
           errorMessage = 'OpenAI API 결제 정보가 필요합니다. 계정 설정을 확인해주세요.'
         } else if (errorMessage.includes('organization') || errorMessage.includes('org')) {
           errorMessage = 'OpenAI API 조직 설정에 문제가 있습니다. API 키의 조직 권한을 확인해주세요.'
+        } else {
+          // 일반적인 403 오류 - 환경 변수 문제 가능성
+          errorMessage = `OpenAI API 접근이 거부되었습니다.\n\n가능한 원인:\n1. Vercel 대시보드에서 OPENAI_API_KEY 환경 변수가 설정되지 않았습니다.\n2. 환경 변수 설정 후 재배포가 필요합니다.\n3. API 키가 유효하지 않거나 만료되었습니다.\n\n해결 방법:\n- Vercel 대시보드 → Settings → Environment Variables에서 OPENAI_API_KEY 확인\n- 환경 변수 설정 후 반드시 Redeploy 실행\n- /api/debug/env 엔드포인트에서 환경 변수 상태 확인`
         }
+        
+        // Vercel 환경에서 환경 변수 상태도 함께 반환
+        const envStatus = {
+          hasApiKey: !!apiKey,
+          apiKeyLength: apiKey?.length || 0,
+          startsWithSk: apiKey?.startsWith('sk-') || false,
+          vercelEnv: process.env.VERCEL_ENV || 'local',
+        }
+        
+        console.error('[analyze-file] 403 오류 - 환경 변수 상태:', JSON.stringify(envStatus, null, 2))
         
         return NextResponse.json<AnalyzeFileResponse>(
           { 
             success: false, 
-            error: errorMessage
+            error: errorMessage,
+            // 개발 환경에서만 환경 변수 상태 포함
+            ...(process.env.NODE_ENV !== 'production' && { debug: envStatus })
           },
           { status: 403 }
         )
