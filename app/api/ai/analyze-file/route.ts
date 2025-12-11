@@ -531,15 +531,24 @@ export async function POST(request: NextRequest) {
 
     // OpenAI API 호출
     // Vercel에서는 환경 변수가 런타임에 로드되므로 명시적으로 확인
-    // 여러 방법으로 환경 변수 확인 시도
-    let apiKey = process.env.OPENAI_API_KEY?.trim()
+    // 여러 방법으로 환경 변수 확인 시도 (Vercel 환경 변수 우선)
+    let apiKey: string | undefined = undefined
     
-    // 환경 변수가 없으면 다른 가능한 이름도 확인
-    if (!apiKey) {
-      apiKey = process.env.OPENAI_API_KEY?.trim() || 
-               process.env.NEXT_PUBLIC_OPENAI_API_KEY?.trim() ||
-               process.env.OPENAI_KEY?.trim() ||
-               undefined
+    // 1순위: OPENAI_API_KEY (Vercel에서 설정한 환경 변수)
+    if (process.env.OPENAI_API_KEY) {
+      apiKey = process.env.OPENAI_API_KEY.trim()
+    }
+    // 2순위: 다른 가능한 이름들
+    else if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+      apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY.trim()
+    }
+    else if (process.env.OPENAI_KEY) {
+      apiKey = process.env.OPENAI_KEY.trim()
+    }
+    
+    // 빈 문자열 체크
+    if (apiKey === '') {
+      apiKey = undefined
     }
     
     // 디버깅: 환경 변수 상태 로깅 (Vercel 함수 로그에서 확인 가능)
