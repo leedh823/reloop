@@ -62,7 +62,28 @@ export function getOpenAIApiKey(): string {
 }
 
 /**
+ * OpenAI API 호출 결과 타입
+ */
+export interface OpenAIErrorResponse {
+  ok: false
+  reason: 'openai_error' | 'missing_api_key' | 'network_error' | 'unknown_error'
+  status?: number
+  code?: string
+  type?: string
+  message: string
+  openaiError?: any
+}
+
+export interface OpenAISuccessResponse {
+  ok: true
+  content: string
+}
+
+export type OpenAIResponse = OpenAIErrorResponse | OpenAISuccessResponse
+
+/**
  * OpenAI API를 호출합니다.
+ * Vercel 환경에서의 디버깅을 위해 상세한 로그를 출력합니다.
  */
 export async function callOpenAIAPI(
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
@@ -71,51 +92,166 @@ export async function callOpenAIAPI(
     temperature?: number
     max_tokens?: number
   }
-): Promise<string> {
-  const apiKey = getOpenAIApiKey()
+): Promise<OpenAIResponse> {
+  const baseURL = 'https://api.openai.com/v1/chat/completions'
+  const model = options?.model || 'gpt-4o-mini'
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: options?.model || 'gpt-4o-mini',
-      messages,
-      temperature: options?.temperature ?? 0.7,
-      max_tokens: options?.max_tokens ?? 1500,
-    }),
+  // 1. API 키 확인 및 로깅
+  const hasApiKey = !!process.env.OPENAI_API_KEY
+  const apiKeyPrefix = process.env.OPENAI_API_KEY 
+    ? process.env.OPENAI_API_KEY.substring(0, 5) 
+    : null
+  
+  console.log('[callOpenAIAPI] API 키 상태:', {
+    hasKey: hasApiKey,
+    keyPrefix: apiKeyPrefix,
   })
   
-  if (!response.ok) {
-    const errorText = await response.text()
-    let errorData: any = {}
+  if (!hasApiKey || !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.trim() === '') {
+    console.error('[callOpenAIAPI] ❌ API 키가 없습니다:', {
+      hasKey: false,
+      keyPrefix: null,
+      OPENAI_API_KEY_exists: !!process.env.OPENAI_API_KEY,
+      OPENAI_API_KEY_length: process.env.OPENAI_API_KEY?.length || 0,
+    })
     
-    try {
-      errorData = JSON.parse(errorText)
-    } catch {
-      errorData = { raw: errorText.substring(0, 500) }
+    return {
+      ok: false,
+      reason: 'missing_api_key',
+      message: 'OPENAI_API_KEY 환경 변수가 설정되지 않았습니다.',
     }
-    
-    // 상세한 오류 정보
-    const errorMessage = errorData?.error?.message || errorData?.message || `HTTP ${response.status} ${response.statusText}`
-    
-    // 403 오류 처리
-    if (response.status === 403) {
-      throw new Error(`OpenAI API 접근이 거부되었습니다.\n\n가능한 원인:\n1. Vercel 대시보드에서 OPENAI_API_KEY 환경 변수가 설정되지 않았습니다.\n2. 환경 변수 설정 후 재배포가 필요합니다.\n3. API 키가 유효하지 않거나 만료되었습니다.\n\n해결 방법:\n- Vercel 대시보드 → Settings → Environment Variables에서 OPENAI_API_KEY 확인\n- 환경 변수 설정 후 반드시 Redeploy 실행\n- /api/debug/env 또는 /api/ai/test-env 엔드포인트에서 환경 변수 상태 확인`)
-    }
-    
-    // 401 오류 처리
-    if (response.status === 401) {
-      throw new Error(`OpenAI API 인증에 실패했습니다. API 키를 확인해주세요.`)
-    }
-    
-    // 기타 오류
-    throw new Error(`OpenAI API 오류: ${errorMessage}`)
   }
   
-  const data = await response.json()
-  return data.choices[0]?.message?.content || ''
+  let apiKey: string
+  try {
+    apiKey = getOpenAIApiKey()
+  } catch (error: any) {
+    console.error('[callOpenAIAPI] ❌ API 키 로드 실패:', {
+      error: error?.message,
+      hasKey: hasApiKey,
+      keyPrefix: apiKeyPrefix,
+    })
+    
+    return {
+      ok: false,
+      reason: 'missing_api_key',
+      message: error?.message || 'API 키를 로드할 수 없습니다.',
+    }
+  }
+  
+  // 2. 요청 본문 구성
+  const requestBody = {
+    model,
+    messages,
+    temperature: options?.temperature ?? 0.7,
+    max_tokens: options?.max_tokens ?? 1500,
+  }
+  
+  console.log('[callOpenAIAPI] 요청 정보:', {
+    baseURL,
+    model,
+    messagesCount: messages.length,
+    hasApiKey: true,
+    keyPrefix: apiKey.substring(0, 5),
+  })
+  
+  // 3. OpenAI API 호출 (try/catch로 감싸기)
+  try {
+    const response = await fetch(baseURL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+    })
+    
+    // 4. 응답 상태 로깅
+    console.log('[callOpenAIAPI] 응답 상태:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+    })
+    
+    // 5. 응답 본문 읽기
+    const responseText = await response.text()
+    let responseData: any = {}
+    
+    try {
+      responseData = JSON.parse(responseText)
+    } catch (parseError) {
+      console.error('[callOpenAIAPI] ❌ 응답 파싱 실패:', {
+        parseError: parseError instanceof Error ? parseError.message : String(parseError),
+        responseText: responseText.substring(0, 500),
+      })
+      responseData = { raw: responseText.substring(0, 500) }
+    }
+    
+    // 6. 에러 응답 처리
+    if (!response.ok) {
+      const errorInfo = responseData?.error || {}
+      const errorCode = errorInfo.code || errorInfo.type || undefined
+      const errorType = errorInfo.type || undefined
+      const errorMessage = errorInfo.message || responseData?.message || `HTTP ${response.status} ${response.statusText}`
+      
+      // 상세한 에러 로그 출력
+      console.error('[callOpenAIAPI] ❌ OpenAI API 오류:', {
+        status: response.status,
+        statusText: response.statusText,
+        code: errorCode,
+        type: errorType,
+        message: errorMessage,
+        model,
+        baseURL,
+        hasApiKey: true,
+        keyPrefix: apiKey.substring(0, 5),
+        responseBody: responseData,
+      })
+      
+      return {
+        ok: false,
+        reason: 'openai_error',
+        status: response.status,
+        code: errorCode,
+        type: errorType,
+        message: errorMessage,
+        openaiError: responseData,
+      }
+    }
+    
+    // 7. 성공 응답 처리
+    const content = responseData.choices?.[0]?.message?.content || ''
+    
+    console.log('[callOpenAIAPI] ✅ API 호출 성공:', {
+      model,
+      contentLength: content.length,
+    })
+    
+    return {
+      ok: true,
+      content,
+    }
+    
+  } catch (error: any) {
+    // 8. 네트워크 오류나 기타 예외 처리
+    console.error('[callOpenAIAPI] ❌ 예외 발생:', {
+      errorName: error?.name,
+      errorMessage: error?.message,
+      errorStack: error?.stack?.substring(0, 500),
+      model,
+      baseURL,
+      hasApiKey: true,
+      keyPrefix: apiKey.substring(0, 5),
+    })
+    
+    return {
+      ok: false,
+      reason: 'network_error',
+      message: error?.message || 'OpenAI API 호출 중 네트워크 오류가 발생했습니다.',
+      openaiError: {
+        name: error?.name,
+        message: error?.message,
+      },
+    }
+  }
 }
-

@@ -155,10 +155,60 @@ export async function POST(request: NextRequest) {
       userMessage += `\n\n[현재 감정 태그] ${emotionTag}`
     }
 
-    const analysisText = await callOpenAIAPI([
+    // OpenAI API 호출 (상세한 에러 처리)
+    const openAIResponse = await callOpenAIAPI([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userMessage },
     ])
+
+    // OpenAI API 에러 처리
+    if (!openAIResponse.ok) {
+      console.error('[analyze-file] OpenAI API 호출 실패:', {
+        reason: openAIResponse.reason,
+        status: openAIResponse.status,
+        code: openAIResponse.code,
+        type: openAIResponse.type,
+        message: openAIResponse.message,
+        openaiError: openAIResponse.openaiError,
+      })
+
+      // 403 오류인 경우 상세한 정보 반환
+      if (openAIResponse.status === 403) {
+        return NextResponse.json<AnalyzeFileResponse>(
+          {
+            success: false,
+            error: `OpenAI API 접근이 거부되었습니다.\n\n오류 코드: ${openAIResponse.code || 'unknown'}\n오류 타입: ${openAIResponse.type || 'unknown'}\n오류 메시지: ${openAIResponse.message}`,
+            // 디버깅을 위한 추가 정보 (프로덕션에서는 제거 가능)
+            debug: {
+              reason: openAIResponse.reason,
+              status: openAIResponse.status,
+              code: openAIResponse.code,
+              type: openAIResponse.type,
+            },
+          },
+          { status: 403 }
+        )
+      }
+
+      // 기타 OpenAI 오류
+      const statusCode = openAIResponse.status || 500
+      return NextResponse.json<AnalyzeFileResponse>(
+        {
+          success: false,
+          error: `OpenAI API 오류: ${openAIResponse.message}`,
+          debug: {
+            reason: openAIResponse.reason,
+            status: openAIResponse.status,
+            code: openAIResponse.code,
+            type: openAIResponse.type,
+          },
+        },
+        { status: statusCode }
+      )
+    }
+
+    // 성공 응답 처리
+    const analysisText = openAIResponse.content
 
     // 응답 파싱
     const sections: { title: string; content: string }[] = []
@@ -211,7 +261,11 @@ export async function POST(request: NextRequest) {
       data: result,
     })
   } catch (error: any) {
-    console.error('[analyze-file] 오류:', error)
+    console.error('[analyze-file] 최상위 오류:', {
+      errorName: error?.name,
+      errorMessage: error?.message,
+      errorStack: error?.stack?.substring(0, 500),
+    })
     
     const errorMessage = error?.message || '서버 오류가 발생했습니다.'
     const statusCode = error?.message?.includes('접근이 거부') ? 403 : 500

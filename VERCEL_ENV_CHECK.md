@@ -94,3 +94,4 @@ curl -X POST https://your-project.vercel.app/api/ai/analyze-file \
 - `.env.local`은 `.gitignore`에 포함되어 있어야 합니다
 - GitHub에 API 키를 커밋하지 마세요
 
+

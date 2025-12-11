@@ -78,3 +78,4 @@ OPENAI_API_KEY=sk-... (여기에 실제 API 키)
 - [ ] Vercel 재배포 완료
 - [ ] 재배포 후 테스트
 
+

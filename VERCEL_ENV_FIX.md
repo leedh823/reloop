@@ -131,3 +131,4 @@ vercel --prod
    - `USE_SUPABASE_EDGE_FUNCTIONS` 설정 확인
    - Supabase 관련 환경 변수 확인 (사용하는 경우)
 
+

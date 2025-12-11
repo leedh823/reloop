@@ -137,3 +137,4 @@ USE_SUPABASE_EDGE_FUNCTIONS=false (또는 설정하지 않음)
 2. **Rate Limit**: 너무 많은 요청을 보내면 403이 발생할 수 있습니다. 잠시 후 다시 시도하세요.
 3. **IP 제한**: OpenAI API 키에 IP 제한이 설정되어 있다면 Vercel/Supabase IP를 허용 목록에 추가해야 합니다.
 
+

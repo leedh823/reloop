@@ -76,3 +76,4 @@ OPENAI_API_KEY=sk-...
 3. ⏳ Edge Functions Secrets에 OPENAI_API_KEY 설정 필요
 
 
+
