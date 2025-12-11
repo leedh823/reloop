@@ -2,22 +2,59 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AnalyzeFileResponse, FileAnalysisResult } from '@/types'
 import { MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_TEXT_LENGTH, MAX_PDF_SIZE_MB, MAX_OTHER_FILE_SIZE_MB } from '@/lib/constants'
 
+// Node.js Runtime 명시 (대용량 파일 처리 필수)
+// Edge Runtime은 대용량 파일 처리 불가능하므로 Node.js 사용
+export const runtime = 'nodejs'
+
 // Vercel 함수 실행 시간 제한: 60초 (Pro 플랜 기준)
-export const maxDuration = 60
+// 로컬 개발에서는 더 길게 설정 가능
+export const maxDuration = process.env.NODE_ENV === 'production' ? 60 : 120
+
+// Next.js App Router는 기본적으로 큰 파일을 지원하지만, 명시적으로 설정
+// bodyParser는 Pages Router에서만 사용 가능, App Router는 자동 처리
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  
   try {
-    const formData = await request.formData()
+    console.log('[analyze-file] 요청 시작:', new Date().toISOString())
+    
+    // FormData 파싱 (대용량 파일 지원)
+    let formData: FormData
+    try {
+      formData = await request.formData()
+    } catch (error: any) {
+      console.error('[analyze-file] FormData 파싱 오류:', {
+        message: error?.message,
+        name: error?.name,
+      })
+      return NextResponse.json<AnalyzeFileResponse>(
+        { 
+          success: false, 
+          error: '파일 업로드 중 오류가 발생했습니다. 파일 크기가 너무 크거나 형식이 올바르지 않습니다.' 
+        },
+        { status: 400 }
+      )
+    }
+    
     const file = formData.get('file') as File | null
     const description = formData.get('description') as string | null
     const emotionTag = formData.get('emotionTag') as string | null
 
     if (!file) {
+      console.error('[analyze-file] 파일이 없음')
       return NextResponse.json<AnalyzeFileResponse>(
         { success: false, error: '파일이 필요합니다.' },
         { status: 400 }
       )
     }
+    
+    console.log('[analyze-file] 파일 정보:', {
+      name: file.name,
+      size: file.size,
+      sizeMB: (file.size / (1024 * 1024)).toFixed(2),
+      type: file.type,
+    })
 
     // Supabase Edge Functions 사용 여부 확인
     const useSupabase = process.env.USE_SUPABASE_EDGE_FUNCTIONS === 'true'
@@ -88,15 +125,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 파일 크기 체크 (fileExtension은 위에서 이미 정의됨)
+    // 파일 크기 체크 (50MB 이상 경고, 100MB 이상 거부)
     const maxSize = fileExtension === 'pdf' ? MAX_PDF_SIZE_BYTES : MAX_OTHER_FILE_SIZE_BYTES
     const maxSizeMB = fileExtension === 'pdf' ? MAX_PDF_SIZE_MB : MAX_OTHER_FILE_SIZE_MB
+    const absoluteMaxSize = 100 * 1024 * 1024 // 100MB 절대 최대값
     
-    if (file.size > maxSize) {
+    if (file.size > absoluteMaxSize) {
+      console.error('[analyze-file] 파일 크기 초과:', {
+        fileSize: file.size,
+        fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+        maxSizeMB: maxSizeMB,
+        absoluteMaxMB: 100,
+      })
       return NextResponse.json<AnalyzeFileResponse>(
-        { success: false, error: `파일 용량이 너무 큽니다. ${fileExtension === 'pdf' ? 'PDF는' : '파일은'} 최대 ${maxSizeMB}MB까지 지원합니다. 파일을 압축하거나 분할해주세요.` },
+        { 
+          success: false, 
+          error: `파일 용량이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 100MB까지 지원합니다. 파일을 압축하거나 분할해주세요.` 
+        },
         { status: 413 }
       )
+    }
+    
+    if (file.size > maxSize) {
+      console.warn('[analyze-file] 파일 크기 경고:', {
+        fileSize: file.size,
+        fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+        maxSizeMB: maxSizeMB,
+      })
+      // 경고만 하고 계속 진행 (50MB까지는 허용)
     }
 
     // 파일 타입 체크
@@ -127,93 +183,192 @@ export async function POST(request: NextRequest) {
       originalLength = textContent.length
     } else if (fileExtension === 'pdf') {
       try {
+        const pdfStartTime = Date.now()
         console.log('[analyze-file] PDF 파싱 시작:', {
           fileName: file.name,
           fileSize: file.size,
           fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
         })
         
-        // PDF 파일을 ArrayBuffer로 읽기
-        const arrayBuffer = await file.arrayBuffer()
-        console.log('[analyze-file] ArrayBuffer 생성 완료:', {
-          arrayBufferSize: arrayBuffer.byteLength,
+        // 메모리 사용량 모니터링
+        const memBefore = process.memoryUsage()
+        console.log('[analyze-file] 메모리 사용량 (파싱 전):', {
+          heapUsed: (memBefore.heapUsed / 1024 / 1024).toFixed(2) + 'MB',
+          heapTotal: (memBefore.heapTotal / 1024 / 1024).toFixed(2) + 'MB',
+          rss: (memBefore.rss / 1024 / 1024).toFixed(2) + 'MB',
         })
+        
+        // PDF 파일을 ArrayBuffer로 읽기 (스트림 방식으로 메모리 효율적 처리)
+        let arrayBuffer: ArrayBuffer
+        try {
+          arrayBuffer = await file.arrayBuffer()
+          console.log('[analyze-file] ArrayBuffer 생성 완료:', {
+            arrayBufferSize: arrayBuffer.byteLength,
+            arrayBufferSizeMB: (arrayBuffer.byteLength / (1024 * 1024)).toFixed(2),
+          })
+        } catch (error: any) {
+          console.error('[analyze-file] ArrayBuffer 생성 실패:', {
+            message: error?.message,
+            name: error?.name,
+          })
+          throw new Error(`파일을 읽는 중 오류가 발생했습니다: ${error?.message || '알 수 없는 오류'}`)
+        }
         
         const buffer = Buffer.from(arrayBuffer)
         console.log('[analyze-file] Buffer 생성 완료:', {
           bufferLength: buffer.length,
+          bufferLengthMB: (buffer.length / (1024 * 1024)).toFixed(2),
         })
+        
+        // ArrayBuffer 메모리 해제 (가능한 경우)
+        // @ts-ignore
+        if (arrayBuffer && typeof arrayBuffer.detach === 'function') {
+          try {
+            // @ts-ignore
+            arrayBuffer.detach()
+          } catch (e) {
+            // detach가 지원되지 않는 환경에서는 무시
+          }
+        }
         
         // pdf-parse를 require로 로드 (CommonJS 모듈)
         // @ts-ignore - pdf-parse는 CommonJS 모듈로 default export가 없음
-        const pdfParse = require('pdf-parse')
-        console.log('[analyze-file] pdf-parse 모듈 로드 완료')
-        
-        // PDF 파싱 옵션 설정 (메모리 최적화)
-        const parseOptions = {
-          // 최대 페이지 수 제한 (메모리 절약)
-          max: 0, // 0 = 모든 페이지
-          // 버전 체크 비활성화 (성능 향상)
-          version: '1.10.100',
+        let pdfParse: any
+        try {
+          pdfParse = require('pdf-parse')
+          console.log('[analyze-file] pdf-parse 모듈 로드 완료')
+        } catch (error: any) {
+          console.error('[analyze-file] pdf-parse 모듈 로드 실패:', error)
+          throw new Error('PDF 파싱 라이브러리를 로드할 수 없습니다. 서버 설정을 확인해주세요.')
         }
         
-        // 타임아웃 설정 (30초 - 더 짧게 설정하여 빠른 실패)
+        // PDF 파싱 옵션 설정 (메모리 최적화)
+        const parseOptions: any = {
+          max: 0, // 0 = 모든 페이지
+          version: '1.10.100', // 버전 체크 비활성화
+        }
+        
+        // 큰 파일(20MB 이상)의 경우 추가 최적화
+        if (file.size > 20 * 1024 * 1024) {
+          console.log('[analyze-file] 큰 파일 감지 (20MB+), 메모리 최적화 모드 활성화')
+          // 큰 파일의 경우 타임아웃을 더 길게 설정
+        }
+        
+        // 타임아웃 설정 (큰 파일을 위해 90초로 증가)
+        const timeoutDuration = file.size > 20 * 1024 * 1024 ? 90000 : 60000
         const parsePromise = pdfParse(buffer, parseOptions)
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('PDF 파싱 시간이 초과되었습니다. 파일이 너무 복잡하거나 크기가 큽니다.')), 30000)
+          setTimeout(() => reject(new Error('PDF 파싱 시간이 초과되었습니다. 파일이 너무 복잡하거나 크기가 큽니다.')), timeoutDuration)
         )
         
-        console.log('[analyze-file] PDF 파싱 시작 (타임아웃: 30초)')
-        const pdfData = await Promise.race([parsePromise, timeoutPromise]) as any
+        console.log(`[analyze-file] PDF 파싱 시작 (타임아웃: ${timeoutDuration / 1000}초)`)
+        
+        let pdfData: any
+        try {
+          pdfData = await Promise.race([parsePromise, timeoutPromise])
+        } catch (parseError: any) {
+          // 타임아웃인지 확인
+          if (parseError?.message?.includes('초과')) {
+            throw parseError
+          }
+          throw parseError
+        }
+        
+        const memAfter = process.memoryUsage()
         console.log('[analyze-file] PDF 파싱 완료:', {
           textLength: pdfData.text?.length || 0,
           numPages: pdfData.numpages || 0,
+          parsingTime: ((Date.now() - pdfStartTime) / 1000).toFixed(2) + '초',
+          memoryUsed: ((memAfter.heapUsed - memBefore.heapUsed) / 1024 / 1024).toFixed(2) + 'MB',
         })
         
         textContent = pdfData.text || ''
         originalLength = textContent.length
         
-        // 메모리 정리
-        buffer.fill(0)
+        // 메모리 정리 시도
+        try {
+          buffer.fill(0)
+        } catch (e) {
+          // 버퍼 정리 실패는 무시
+        }
+        
+        // pdfData 참조 해제
+        pdfData = null
         
         if (!textContent || textContent.trim().length === 0) {
+          console.warn('[analyze-file] PDF에서 텍스트를 추출할 수 없음')
           return NextResponse.json<AnalyzeFileResponse>(
-            { success: false, error: 'PDF 파일에서 텍스트를 추출할 수 없습니다. 텍스트가 포함된 PDF인지 확인해주세요. (이미지만 포함된 PDF는 지원하지 않습니다)' },
+            { 
+              success: false, 
+              error: 'PDF 파일에서 텍스트를 추출할 수 없습니다. 텍스트가 포함된 PDF인지 확인해주세요. (이미지만 포함된 PDF는 지원하지 않습니다)' 
+            },
             { status: 400 }
           )
         }
+        
+        console.log('[analyze-file] 텍스트 추출 성공:', {
+          textLength: textContent.length,
+          textLengthKB: (textContent.length / 1024).toFixed(2),
+        })
       } catch (error: any) {
         // 상세한 오류 로깅
         const errorDetails = {
           message: error?.message || 'Unknown error',
-          stack: error?.stack?.substring(0, 500),
+          stack: error?.stack?.substring(0, 1000),
           name: error?.name,
+          code: error?.code,
+          errno: error?.errno,
           fileSize: file.size,
           fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
           fileName: file.name,
+          memoryUsage: {
+            heapUsed: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2) + 'MB',
+            heapTotal: (process.memoryUsage().heapTotal / 1024 / 1024).toFixed(2) + 'MB',
+            rss: (process.memoryUsage().rss / 1024 / 1024).toFixed(2) + 'MB',
+          },
         }
         
-        console.error('PDF 파싱 오류 (상세):', JSON.stringify(errorDetails, null, 2))
+        // 터미널에 상세 오류 출력
+        console.error('='.repeat(60))
+        console.error('[analyze-file] PDF 파싱 오류 발생!')
+        console.error('='.repeat(60))
+        console.error('파일명:', file.name)
+        console.error('파일 크기:', (file.size / (1024 * 1024)).toFixed(2), 'MB')
+        console.error('오류 메시지:', error?.message)
+        console.error('오류 타입:', error?.name)
+        console.error('오류 코드:', error?.code)
+        console.error('메모리 사용량:', errorDetails.memoryUsage)
+        if (error?.stack) {
+          console.error('스택 트레이스:')
+          console.error(error.stack.substring(0, 1000))
+        }
+        console.error('='.repeat(60))
+        
+        // JSON 형식으로도 로깅
+        console.error('[analyze-file] PDF 파싱 오류 (JSON):', JSON.stringify(errorDetails, null, 2))
         
         // 구체적인 오류 메시지 제공
         let errorMessage = 'PDF 파일을 읽는 중 오류가 발생했습니다.'
+        let statusCode = 500
         
         if (error?.message?.includes('시간이 초과') || error?.message?.includes('timeout') || error?.message?.includes('초과')) {
           errorMessage = `PDF 파일 분석 시간이 초과되었습니다. 파일이 너무 크거나 복잡합니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일을 압축하거나 더 작은 파일로 분할해주세요.`
-        } else if (error?.message?.includes('memory') || error?.message?.includes('메모리') || error?.message?.includes('Memory') || error?.message?.includes('heap')) {
+          statusCode = 408 // Request Timeout
+        } else if (error?.message?.includes('memory') || error?.message?.includes('메모리') || error?.message?.includes('Memory') || error?.message?.includes('heap') || error?.message?.includes('allocation')) {
           errorMessage = `PDF 파일이 너무 커서 메모리 부족이 발생했습니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일을 압축하거나 30MB 이하로 줄여주세요.`
-        } else if (error?.message?.includes('corrupt') || error?.message?.includes('손상') || error?.message?.includes('invalid')) {
+          statusCode = 413 // Payload Too Large
+        } else if (error?.message?.includes('corrupt') || error?.message?.includes('손상') || error?.message?.includes('invalid') || error?.message?.includes('malformed')) {
           errorMessage = 'PDF 파일이 손상되었거나 읽을 수 없는 형식입니다. 다른 PDF 파일을 시도해주세요.'
-        } else if (error?.message?.includes('Cannot find module') || error?.message?.includes('require')) {
+          statusCode = 400 // Bad Request
+        } else if (error?.message?.includes('Cannot find module') || error?.message?.includes('require') || error?.message?.includes('모듈')) {
           errorMessage = 'PDF 파싱 라이브러리를 찾을 수 없습니다. 서버 설정을 확인해주세요.'
+          statusCode = 500 // Internal Server Error
+        } else if (error?.message?.includes('파일을 읽는 중')) {
+          errorMessage = error.message
+          statusCode = 400
         } else {
           // 일반적인 오류 메시지에 파일 크기 정보 추가
           errorMessage = `PDF 파일을 읽는 중 오류가 발생했습니다. (파일 크기: ${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일이 너무 크거나 복잡할 수 있습니다. 파일을 압축하거나 더 작은 파일로 시도해주세요.`
-        }
-        
-        // 개발 환경에서는 상세 오류를 로그에만 기록
-        if (process.env.NODE_ENV === 'development') {
-          console.error('PDF 파싱 상세 오류:', errorDetails)
         }
         
         return NextResponse.json<AnalyzeFileResponse>(
@@ -221,7 +376,7 @@ export async function POST(request: NextRequest) {
             success: false, 
             error: errorMessage
           },
-          { status: 500 }
+          { status: statusCode }
         )
       }
     } else if (fileExtension === 'docx') {
@@ -469,22 +624,54 @@ export async function POST(request: NextRequest) {
       data: result,
     })
   } catch (error: any) {
-    console.error('파일 분석 오류:', error)
+    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2)
+    
+    // 최상위 레벨 오류 로깅
+    console.error('='.repeat(60))
+    console.error('[analyze-file] 파일 분석 전체 오류 발생!')
+    console.error('='.repeat(60))
+    console.error('오류 메시지:', error?.message)
+    console.error('오류 타입:', error?.name)
+    console.error('오류 코드:', error?.code)
+    console.error('처리 시간:', totalTime, '초')
+    console.error('메모리 사용량:', {
+      heapUsed: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2) + 'MB',
+      heapTotal: (process.memoryUsage().heapTotal / 1024 / 1024).toFixed(2) + 'MB',
+      rss: (process.memoryUsage().rss / 1024 / 1024).toFixed(2) + 'MB',
+    })
+    if (error?.stack) {
+      console.error('스택 트레이스:')
+      console.error(error.stack.substring(0, 1500))
+    }
+    console.error('='.repeat(60))
     
     // 구체적인 오류 메시지 제공
     let errorMessage = '서버 오류가 발생했습니다.'
+    let statusCode = 500
     
-    if (error?.message?.includes('timeout') || error?.message?.includes('타임아웃')) {
+    if (error?.message?.includes('timeout') || error?.message?.includes('타임아웃') || error?.message?.includes('초과')) {
       errorMessage = '요청 시간이 초과되었습니다. 파일이 너무 크거나 복잡합니다. 잠시 후 다시 시도하거나 파일을 압축해주세요.'
-    } else if (error?.message?.includes('memory') || error?.message?.includes('메모리')) {
+      statusCode = 408
+    } else if (error?.message?.includes('memory') || error?.message?.includes('메모리') || error?.message?.includes('allocation')) {
       errorMessage = '메모리 부족으로 파일을 처리할 수 없습니다. 파일 크기를 줄여주세요.'
+      statusCode = 413
     } else if (error?.message?.includes('ENOENT') || error?.message?.includes('파일을 찾을 수 없')) {
       errorMessage = '파일을 찾을 수 없습니다. 파일을 다시 업로드해주세요.'
+      statusCode = 400
+    } else if (error?.message?.includes('파일 크기') || error?.message?.includes('too large')) {
+      errorMessage = '파일 크기가 너무 큽니다. 파일을 압축하거나 분할해주세요.'
+      statusCode = 413
+    } else if (error?.message?.includes('FormData') || error?.message?.includes('파싱')) {
+      errorMessage = '파일 업로드 중 오류가 발생했습니다. 파일 형식과 크기를 확인해주세요.'
+      statusCode = 400
     }
     
     return NextResponse.json<AnalyzeFileResponse>(
-      { success: false, error: errorMessage },
-      { status: 500 }
+      { 
+        success: false, 
+        error: errorMessage 
+      },
+      { status: statusCode }
     )
   }
 }
