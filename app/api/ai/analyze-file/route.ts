@@ -232,12 +232,26 @@ export async function POST(request: NextRequest) {
         }
         
         // pdf-parse를 require로 로드 (CommonJS 모듈)
-        // Next.js App Router의 Node.js runtime에서는 require 사용 가능
-        let pdfParse: any
+        // pdf-parse 2.4.5는 PDFParse 클래스를 export
+        let PDFParse: any
         try {
-          // @ts-ignore - pdf-parse는 CommonJS 모듈로 default export가 없음
-          pdfParse = require('pdf-parse')
-          console.log('[analyze-file] pdf-parse 모듈 로드 완료')
+          // @ts-ignore - pdf-parse는 CommonJS 모듈
+          const pdfParseModule = require('pdf-parse')
+          
+          // PDFParse 클래스 추출
+          if (pdfParseModule.PDFParse) {
+            PDFParse = pdfParseModule.PDFParse
+          } else if (typeof pdfParseModule === 'function') {
+            PDFParse = pdfParseModule
+          } else {
+            throw new Error('PDFParse 클래스를 찾을 수 없습니다.')
+          }
+          
+          if (typeof PDFParse !== 'function') {
+            throw new Error(`PDFParse가 함수/클래스가 아닙니다. 타입: ${typeof PDFParse}`)
+          }
+          
+          console.log('[analyze-file] pdf-parse 모듈 로드 완료 (PDFParse 클래스)')
         } catch (error: any) {
           console.error('[analyze-file] pdf-parse 모듈 로드 실패:', {
             message: error?.message,
@@ -245,7 +259,7 @@ export async function POST(request: NextRequest) {
             code: error?.code,
             stack: error?.stack?.substring(0, 500),
           })
-          throw new Error('PDF 파싱 라이브러리를 로드할 수 없습니다. 서버 설정을 확인해주세요.')
+          throw new Error(`PDF 파싱 라이브러리를 로드할 수 없습니다: ${error?.message || '알 수 없는 오류'}`)
         }
         
         // PDF 파싱 옵션 설정 (메모리 최적화)
@@ -264,17 +278,31 @@ export async function POST(request: NextRequest) {
         const timeoutDuration = file.size > 20 * 1024 * 1024 ? 120000 : 90000
         console.log(`[analyze-file] PDF 파싱 시작 (타임아웃: ${timeoutDuration / 1000}초)`)
         
-        // PDF 파싱을 별도 함수로 분리하여 에러 추적 개선
+        // PDFParse 클래스를 사용하여 PDF 파싱
         let pdfData: any
         try {
-          const parsePromise = pdfParse(buffer, parseOptions)
+          console.log('[analyze-file] PDFParse 인스턴스 생성 및 파싱 시작...')
+          
+          // PDFParse 인스턴스 생성
+          const pdfParser = new PDFParse({ data: buffer })
+          
+          // getText() 메서드를 사용하여 텍스트 추출
+          const parsePromise = pdfParser.getText(parseOptions)
           const timeoutPromise = new Promise((_, reject) => 
             setTimeout(() => {
               reject(new Error('PDF 파싱 시간이 초과되었습니다. 파일이 너무 복잡하거나 크기가 큽니다.'))
             }, timeoutDuration)
           )
           
-          pdfData = await Promise.race([parsePromise, timeoutPromise])
+          const textResult = await Promise.race([parsePromise, timeoutPromise]) as any
+          
+          // 결과를 기존 형식으로 변환
+          pdfData = {
+            text: textResult.text || '',
+            numpages: textResult.total || 0,
+          }
+          
+          console.log('[analyze-file] PDFParse 파싱 성공')
         } catch (parseError: any) {
           // 파싱 오류를 더 구체적으로 처리
           console.error('[analyze-file] PDF 파싱 중 오류:', {
@@ -283,6 +311,12 @@ export async function POST(request: NextRequest) {
             code: parseError?.code,
             stack: parseError?.stack?.substring(0, 500),
           })
+          
+          // 함수가 아니라는 오류인지 확인
+          if (parseError?.message?.includes('is not a function') || 
+              parseError?.message?.includes('함수가 아닙니다')) {
+            throw new Error(`PDF 파싱 라이브러리 오류: ${parseError.message}. 서버 설정을 확인해주세요.`)
+          }
           
           // 타임아웃인지 확인
           if (parseError?.message?.includes('초과') || parseError?.message?.includes('timeout')) {
