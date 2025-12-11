@@ -539,7 +539,7 @@ export async function POST(request: NextRequest) {
       apiKey = process.env.OPENAI_API_KEY?.trim() || 
                process.env.NEXT_PUBLIC_OPENAI_API_KEY?.trim() ||
                process.env.OPENAI_KEY?.trim() ||
-               null
+               undefined
     }
     
     // 디버깅: 환경 변수 상태 로깅 (Vercel 함수 로그에서 확인 가능)
