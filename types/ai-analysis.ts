@@ -22,6 +22,12 @@ export interface AnalyzeFileResponse {
   success: boolean
   data?: FileAnalysisResult
   error?: string
+  debug?: {
+    reason?: string
+    status?: number
+    code?: string
+    type?: string
+  }
 }
 
 export interface ChatWithFileRequest {

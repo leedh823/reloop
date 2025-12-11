@@ -43,14 +43,32 @@ export async function POST(request: NextRequest) {
       userMessage = context + userMessage
     }
 
-    const reply = await callOpenAIAPI([
+    const openAIResponse = await callOpenAIAPI([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userMessage },
     ], {
       max_tokens: 500,
     })
 
-    return NextResponse.json<EmotionReflectResponse>({ reply })
+    if (!openAIResponse.ok) {
+      console.error('[emotion-reflect] OpenAI API 호출 실패:', {
+        reason: openAIResponse.reason,
+        status: openAIResponse.status,
+        code: openAIResponse.code,
+        type: openAIResponse.type,
+        message: openAIResponse.message,
+      })
+
+      const statusCode = openAIResponse.status || 500
+      return NextResponse.json(
+        {
+          error: `OpenAI API 오류: ${openAIResponse.message}`,
+        },
+        { status: statusCode }
+      )
+    }
+
+    return NextResponse.json<EmotionReflectResponse>({ reply: openAIResponse.content })
   } catch (error: any) {
     console.error('[emotion-reflect] 오류:', error)
     

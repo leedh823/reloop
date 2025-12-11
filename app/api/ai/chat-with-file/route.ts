@@ -37,14 +37,32 @@ ${analysisSummary}
 [키워드 태그]
 ${tags.join(', ')}`
 
-    const reply = await callOpenAIAPI([
+    const openAIResponse = await callOpenAIAPI([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: message },
     ], {
       max_tokens: 500,
     })
 
-    return NextResponse.json<ChatWithFileResponse>({ reply })
+    if (!openAIResponse.ok) {
+      console.error('[chat-with-file] OpenAI API 호출 실패:', {
+        reason: openAIResponse.reason,
+        status: openAIResponse.status,
+        code: openAIResponse.code,
+        type: openAIResponse.type,
+        message: openAIResponse.message,
+      })
+
+      const statusCode = openAIResponse.status || 500
+      return NextResponse.json(
+        {
+          error: `OpenAI API 오류: ${openAIResponse.message}`,
+        },
+        { status: statusCode }
+      )
+    }
+
+    return NextResponse.json<ChatWithFileResponse>({ reply: openAIResponse.content })
   } catch (error: any) {
     console.error('[chat-with-file] 오류:', error)
     
