@@ -531,7 +531,16 @@ export async function POST(request: NextRequest) {
 
     // OpenAI API 호출
     // Vercel에서는 환경 변수가 런타임에 로드되므로 명시적으로 확인
-    const apiKey = process.env.OPENAI_API_KEY?.trim()
+    // 여러 방법으로 환경 변수 확인 시도
+    let apiKey = process.env.OPENAI_API_KEY?.trim()
+    
+    // 환경 변수가 없으면 다른 가능한 이름도 확인
+    if (!apiKey) {
+      apiKey = process.env.OPENAI_API_KEY?.trim() || 
+               process.env.NEXT_PUBLIC_OPENAI_API_KEY?.trim() ||
+               process.env.OPENAI_KEY?.trim() ||
+               null
+    }
     
     // 디버깅: 환경 변수 상태 로깅 (Vercel 함수 로그에서 확인 가능)
     const envCheck = {
@@ -541,37 +550,65 @@ export async function POST(request: NextRequest) {
       startsWithSk: apiKey?.startsWith('sk-') || false,
       nodeEnv: process.env.NODE_ENV,
       vercelEnv: process.env.VERCEL_ENV,
-      allEnvKeys: Object.keys(process.env).filter(k => k.includes('OPENAI') || k.includes('API')).join(', '),
+      isVercel: !!process.env.VERCEL,
+      allEnvKeys: Object.keys(process.env).filter(k => 
+        k.toUpperCase().includes('OPENAI') || 
+        k.toUpperCase().includes('API') ||
+        k.toUpperCase().includes('KEY')
+      ).join(', '),
+      // 실제 환경 변수 값들 (일부만)
+      envVarSamples: Object.keys(process.env)
+        .filter(k => k.toUpperCase().includes('OPENAI') || k.toUpperCase().includes('API'))
+        .reduce((acc: any, k) => {
+          const val = process.env[k]
+          acc[k] = {
+            exists: !!val,
+            length: val?.length || 0,
+            prefix: val ? `${val.substring(0, 7)}...` : 'undefined',
+          }
+          return acc
+        }, {}),
     }
     
-    console.log('[analyze-file] API Key 체크 (Vercel 호환):', JSON.stringify(envCheck, null, 2))
+    console.log('[analyze-file] API Key 체크 (상세):', JSON.stringify(envCheck, null, 2))
     
     if (!apiKey) {
-      console.error('[analyze-file] OPENAI_API_KEY가 설정되지 않았습니다.')
+      console.error('[analyze-file] ❌ OPENAI_API_KEY가 설정되지 않았습니다.')
       console.error('[analyze-file] 사용 가능한 환경 변수:', envCheck.allEnvKeys)
       console.error('[analyze-file] Vercel 환경:', process.env.VERCEL_ENV)
+      console.error('[analyze-file] Vercel 여부:', process.env.VERCEL)
+      console.error('[analyze-file] 환경 변수 샘플:', JSON.stringify(envCheck.envVarSamples, null, 2))
+      
+      const errorMsg = `AI 서비스가 설정되지 않았습니다.\n\n현재 상태:\n- 환경 변수 존재: ${envCheck.exists ? '예' : '아니오'}\n- Vercel 환경: ${process.env.VERCEL_ENV || '로컬'}\n- 사용 가능한 환경 변수: ${envCheck.allEnvKeys || '없음'}\n\n해결 방법:\n1. Vercel 대시보드 → Settings → Environment Variables\n2. OPENAI_API_KEY 추가 (sk-로 시작하는 실제 API 키)\n3. Production, Preview, Development 모두 체크\n4. Save 후 반드시 Redeploy 실행\n\n환경 변수 확인:\n- /api/debug/env\n- /api/ai/test-env`
       
       return NextResponse.json<AnalyzeFileResponse>(
         { 
           success: false, 
-          error: 'AI 서비스가 설정되지 않았습니다. Vercel 대시보드에서 OPENAI_API_KEY 환경 변수를 설정하고 Redeploy 해주세요.' 
+          error: errorMsg
         },
         { status: 500 }
       )
     }
     
     if (!apiKey.startsWith('sk-')) {
-      console.error('[analyze-file] OPENAI_API_KEY 형식이 올바르지 않습니다.')
+      console.error('[analyze-file] ❌ OPENAI_API_KEY 형식이 올바르지 않습니다.')
       console.error('[analyze-file] API 키 접두사:', apiKey.substring(0, 10))
+      console.error('[analyze-file] API 키 길이:', apiKey.length)
       
       return NextResponse.json<AnalyzeFileResponse>(
         { 
           success: false, 
-          error: `API 키 형식이 올바르지 않습니다. (현재 접두사: ${apiKey.substring(0, 10)}...)` 
+          error: `API 키 형식이 올바르지 않습니다.\n\n현재 접두사: ${apiKey.substring(0, 10)}...\n길이: ${apiKey.length}\n\n올바른 OpenAI API 키는 'sk-'로 시작해야 합니다.\nVercel 대시보드에서 환경 변수를 확인하고 올바른 API 키로 업데이트하세요.` 
         },
         { status: 500 }
       )
     }
+    
+    console.log('[analyze-file] ✅ API Key 확인 완료:', {
+      length: apiKey.length,
+      prefix: apiKey.substring(0, 7),
+      startsWithSk: true,
+    })
 
     // System 프롬프트
     const systemPrompt = `너는 'Reloop'라는 서비스 안에서 동작하는 감정 기반 AI 파트너야.

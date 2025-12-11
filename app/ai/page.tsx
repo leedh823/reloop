@@ -111,7 +111,15 @@ export default function AiOnboardingAndChatPage() {
         
         // 더 구체적인 에러 메시지
         if (response.status === 403) {
-          errorMessage = errorData.error || 'OpenAI API 접근이 거부되었습니다. 관리자에게 문의해주세요.'
+          // 403 오류는 환경 변수 문제일 가능성이 높음
+          const detailedError = errorData.error || 'OpenAI API 접근이 거부되었습니다.'
+          
+          // 서버에서 제공한 상세 메시지가 있으면 사용
+          if (detailedError.includes('Vercel 대시보드') || detailedError.includes('환경 변수')) {
+            errorMessage = detailedError
+          } else {
+            errorMessage = `OpenAI API 접근이 거부되었습니다.\n\n가능한 원인:\n1. Vercel 대시보드에서 OPENAI_API_KEY 환경 변수가 설정되지 않았습니다.\n2. 환경 변수 설정 후 재배포가 필요합니다.\n3. API 키가 유효하지 않거나 만료되었습니다.\n\n해결 방법:\n- Vercel 대시보드 → Settings → Environment Variables에서 OPENAI_API_KEY 확인\n- 환경 변수 설정 후 반드시 Redeploy 실행\n- /api/debug/env 또는 /api/ai/test-env 엔드포인트에서 환경 변수 상태 확인`
+          }
         } else if (response.status === 401) {
           errorMessage = 'OpenAI API 인증에 실패했습니다. 관리자에게 문의해주세요.'
         } else if (response.status === 413) {
