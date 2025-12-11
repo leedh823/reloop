@@ -231,20 +231,31 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // pdf-parse를 require로 로드 (CommonJS 모듈)
-        // pdf-parse 2.4.5는 PDFParse 클래스를 export
+        // pdf-parse를 require로 로드 (Node.js Runtime에서 안정적)
         let PDFParse: any
         try {
+          // Node.js 런타임에서는 require 사용
           // @ts-ignore - pdf-parse는 CommonJS 모듈
           const pdfParseModule = require('pdf-parse')
           
+          console.log('[analyze-file] pdf-parse 모듈 로드 시도:', {
+            moduleType: typeof pdfParseModule,
+            hasPDFParse: !!pdfParseModule?.PDFParse,
+            keys: pdfParseModule ? Object.keys(pdfParseModule).slice(0, 10) : [],
+          })
+          
           // PDFParse 클래스 추출
-          if (pdfParseModule.PDFParse) {
+          if (pdfParseModule && pdfParseModule.PDFParse) {
             PDFParse = pdfParseModule.PDFParse
-          } else if (typeof pdfParseModule === 'function') {
-            PDFParse = pdfParseModule
+            console.log('[analyze-file] PDFParse 클래스 로드 성공 (PDFParse 속성)')
           } else {
-            throw new Error('PDFParse 클래스를 찾을 수 없습니다.')
+            // 모듈 구조 확인
+            console.error('[analyze-file] PDFParse를 찾을 수 없음:', {
+              module: pdfParseModule,
+              type: typeof pdfParseModule,
+              keys: pdfParseModule ? Object.keys(pdfParseModule) : 'null',
+            })
+            throw new Error(`PDFParse 클래스를 찾을 수 없습니다. 모듈 타입: ${typeof pdfParseModule}`)
           }
           
           if (typeof PDFParse !== 'function') {
@@ -253,13 +264,37 @@ export async function POST(request: NextRequest) {
           
           console.log('[analyze-file] pdf-parse 모듈 로드 완료 (PDFParse 클래스)')
         } catch (error: any) {
-          console.error('[analyze-file] pdf-parse 모듈 로드 실패:', {
-            message: error?.message,
-            name: error?.name,
-            code: error?.code,
-            stack: error?.stack?.substring(0, 500),
-          })
-          throw new Error(`PDF 파싱 라이브러리를 로드할 수 없습니다: ${error?.message || '알 수 없는 오류'}`)
+          // 상세한 오류 로깅
+          console.error('='.repeat(60))
+          console.error('[analyze-file] pdf-parse 모듈 로드 실패!')
+          console.error('='.repeat(60))
+          console.error('오류 메시지:', error?.message)
+          console.error('오류 타입:', error?.name)
+          console.error('오류 코드:', error?.code)
+          console.error('스택 트레이스:', error?.stack?.substring(0, 1000))
+          console.error('='.repeat(60))
+          
+          // 모듈 경로 확인
+          try {
+            const fs = require('fs')
+            const path = require('path')
+            const pdfParsePath = path.join(process.cwd(), 'node_modules', 'pdf-parse')
+            const exists = fs.existsSync(pdfParsePath)
+            console.error('pdf-parse 모듈 경로:', pdfParsePath)
+            console.error('모듈 존재 여부:', exists)
+            if (exists) {
+              const packageJson = path.join(pdfParsePath, 'package.json')
+              if (fs.existsSync(packageJson)) {
+                const pkg = JSON.parse(fs.readFileSync(packageJson, 'utf-8'))
+                console.error('pdf-parse 버전:', pkg.version)
+                console.error('main 필드:', pkg.main)
+              }
+            }
+          } catch (pathError) {
+            console.error('경로 확인 실패:', pathError)
+          }
+          
+          throw new Error(`PDF 파싱 라이브러리를 로드할 수 없습니다: ${error?.message || '알 수 없는 오류'}. 서버 로그를 확인해주세요.`)
         }
         
         // PDF 파싱 옵션 설정 (메모리 최적화)
