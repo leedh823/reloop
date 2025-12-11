@@ -7,6 +7,19 @@ import { callOpenAIAPI } from '@/lib/openai'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
+// GET 요청 처리 (디버깅용 - 실제 사용 시 제거 가능)
+export async function GET(request: NextRequest) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: '이 엔드포인트는 POST 메서드만 지원합니다. 파일 업로드를 위해 POST 요청을 사용해주세요.',
+      method: 'GET',
+      supportedMethods: ['POST'],
+    },
+    { status: 405 }
+  )
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
