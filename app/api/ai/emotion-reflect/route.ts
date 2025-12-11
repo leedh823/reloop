@@ -48,10 +48,23 @@ export async function POST(request: NextRequest) {
     }
 
     const apiKey = process.env.OPENAI_API_KEY?.trim()
+    
+    // Vercel 환경 변수 확인 (함수 로그에서 확인 가능)
     if (!apiKey) {
-      console.error('OPENAI_API_KEY가 설정되지 않았습니다.')
+      console.error('[emotion-reflect] OPENAI_API_KEY가 설정되지 않았습니다.')
+      console.error('[emotion-reflect] Vercel 환경:', process.env.VERCEL_ENV)
+      console.error('[emotion-reflect] 사용 가능한 환경 변수:', Object.keys(process.env).filter(k => k.includes('OPENAI') || k.includes('API')).join(', '))
+      
       return NextResponse.json(
-        { error: 'AI 서비스가 설정되지 않았습니다.' },
+        { error: 'AI 서비스가 설정되지 않았습니다. Vercel 대시보드에서 OPENAI_API_KEY 환경 변수를 설정하고 Redeploy 해주세요.' },
+        { status: 500 }
+      )
+    }
+    
+    if (!apiKey.startsWith('sk-')) {
+      console.error('[emotion-reflect] OPENAI_API_KEY 형식이 올바르지 않습니다.')
+      return NextResponse.json(
+        { error: 'API 키 형식이 올바르지 않습니다.' },
         { status: 500 }
       )
     }

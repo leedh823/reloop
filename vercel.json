@@ -3,7 +3,18 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["icn1"]
+  "regions": ["icn1"],
+  "functions": {
+    "app/api/ai/analyze-file/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/ai/emotion-reflect/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/ai/chat-with-file/route.ts": {
+      "maxDuration": 30
+    }
+  }
 }
 
 
