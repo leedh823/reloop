@@ -4,8 +4,10 @@ import { useState, useRef } from 'react'
 import { FileAnalysisResult } from '@/types'
 import AnalysisResultPanel from '@/components/AI/AnalysisResultPanel'
 import FileChatPanel from '@/components/AI/FileChatPanel'
+import ApiHostConfig from '@/components/AI/ApiHostConfig'
 import { EMOTIONS, MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_PDF_SIZE_MB, MAX_OTHER_FILE_SIZE_MB } from '@/lib/constants'
 import { PrimaryButton } from '@/components/UI/Button'
+import { getApiUrl } from '@/lib/utils/api'
 
 export default function AiOnboardingAndChatPage() {
   const [file, setFile] = useState<File | null>(null)
@@ -92,7 +94,7 @@ export default function AiOnboardingAndChatPage() {
         formData.append('emotionTag', emotionTag)
       }
 
-      const response = await fetch('/api/ai/analyze-file', {
+      const response = await fetch(getApiUrl('/api/ai/analyze-file'), {
         method: 'POST',
         body: formData,
       })
@@ -363,6 +365,9 @@ export default function AiOnboardingAndChatPage() {
           onClose={() => setIsChatOpen(false)}
         />
       )}
+
+      {/* API 호스트 설정 (개발 모드) */}
+      <ApiHostConfig />
     </div>
   )
 }

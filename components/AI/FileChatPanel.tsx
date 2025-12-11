@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChatMessage, FileAnalysisResult } from '@/types'
 import { formatTime } from '@/lib/utils/formatters'
+import { getApiUrl } from '@/lib/utils/api'
 
 interface FileChatPanelProps {
   analysisResult: FileAnalysisResult
@@ -58,7 +59,7 @@ export default function FileChatPanel({
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/ai/chat-with-file', {
+      const response = await fetch(getApiUrl('/api/ai/chat-with-file'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

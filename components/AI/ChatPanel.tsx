@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChatMessage, EmotionReflectRequest } from '@/types'
 import { formatTime } from '@/lib/utils/formatters'
+import { getApiUrl } from '@/lib/utils/api'
 
 interface ChatPanelProps {
   isOpen: boolean
@@ -70,7 +71,7 @@ export default function ChatPanel({
         emotionTag,
       }
 
-      const response = await fetch('/api/ai/emotion-reflect', {
+      const response = await fetch(getApiUrl('/api/ai/emotion-reflect'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
