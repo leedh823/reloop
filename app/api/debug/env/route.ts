@@ -5,8 +5,10 @@ import { NextRequest, NextResponse } from 'next/server'
  * 프로덕션에서는 제거하거나 보안을 강화해야 합니다.
  */
 export async function GET(request: NextRequest) {
-  // 보안: 특정 조건에서만 허용 (예: 특정 헤더 또는 쿼리 파라미터)
   const apiKey = process.env.OPENAI_API_KEY?.trim()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+  const useSupabase = process.env.USE_SUPABASE_EDGE_FUNCTIONS === 'true'
   
   return NextResponse.json({
     hasApiKey: !!apiKey,
@@ -16,6 +18,9 @@ export async function GET(request: NextRequest) {
     startsWithSk: apiKey?.startsWith('sk-') || false,
     rawEnvExists: !!process.env.OPENAI_API_KEY,
     rawEnvLength: process.env.OPENAI_API_KEY?.length || 0,
+    hasSupabaseUrl: !!supabaseUrl,
+    hasSupabaseAnonKey: !!supabaseAnonKey,
+    useSupabaseEdgeFunctions: useSupabase,
     // 실제 키 값은 반환하지 않음 (보안)
   })
 }

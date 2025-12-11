@@ -23,9 +23,21 @@ export async function POST(request: NextRequest) {
     const useSupabase = process.env.USE_SUPABASE_EDGE_FUNCTIONS === 'true'
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     
-    if (useSupabase && supabaseUrl) {
-      // Supabase Edge Functions로 요청 전달
+    console.log('[analyze-file] 환경 변수 확인:', {
+      useSupabase,
+      hasSupabaseUrl: !!supabaseUrl,
+      fileType: file.type,
+      fileName: file.name,
+    })
+    
+    // PDF 파일은 Supabase Edge Functions에서 지원하지 않으므로 Next.js API Routes 사용
+    const fileExtension = file.name.split('.').pop()?.toLowerCase()
+    const isPdf = fileExtension === 'pdf'
+    
+    if (useSupabase && supabaseUrl && !isPdf) {
+      // Supabase Edge Functions로 요청 전달 (PDF 제외)
       try {
+        console.log('[analyze-file] Supabase Edge Function 호출 시도')
         const supabaseFormData = new FormData()
         supabaseFormData.append('file', file)
         if (description) {
@@ -48,6 +60,10 @@ export async function POST(request: NextRequest) {
 
         if (!supabaseResponse.ok) {
           const errorData = await supabaseResponse.json().catch(() => ({}))
+          console.error('[analyze-file] Supabase Edge Function 오류:', {
+            status: supabaseResponse.status,
+            error: errorData,
+          })
           return NextResponse.json<AnalyzeFileResponse>(
             { 
               success: false, 
@@ -58,15 +74,21 @@ export async function POST(request: NextRequest) {
         }
 
         const data = await supabaseResponse.json()
+        console.log('[analyze-file] Supabase Edge Function 성공')
         return NextResponse.json<AnalyzeFileResponse>(data)
       } catch (error: any) {
-        console.error('Supabase Edge Function 오류:', error)
+        console.error('[analyze-file] Supabase Edge Function 예외:', error)
         // Supabase 실패 시 기존 로직으로 폴백
+      }
+    } else {
+      if (isPdf) {
+        console.log('[analyze-file] PDF 파일이므로 Next.js API Route 사용')
+      } else {
+        console.log('[analyze-file] Supabase 비활성화 또는 URL 없음, Next.js API Route 사용')
       }
     }
 
-    // 파일 크기 체크
-    const fileExtension = file.name.split('.').pop()?.toLowerCase()
+    // 파일 크기 체크 (fileExtension은 위에서 이미 정의됨)
     const maxSize = fileExtension === 'pdf' ? MAX_PDF_SIZE_BYTES : MAX_OTHER_FILE_SIZE_BYTES
     const maxSizeMB = fileExtension === 'pdf' ? MAX_PDF_SIZE_MB : MAX_OTHER_FILE_SIZE_MB
     
@@ -295,9 +317,12 @@ export async function POST(request: NextRequest) {
       if (response.status === 403) {
         // OpenAI API의 403 오류는 보통 API 키 권한 문제
         let errorMessage = 'OpenAI API 접근이 거부되었습니다.'
+        let detailedMessage = ''
         
+        // OpenAI API의 구체적인 에러 메시지 추출
         if (errorData?.error?.message) {
-          errorMessage = `${errorData.error.message}`
+          detailedMessage = errorData.error.message
+          errorMessage = `${errorMessage}\n\n상세: ${detailedMessage}`
         } else if (errorData?.error?.code) {
           errorMessage = `오류 코드: ${errorData.error.code}`
         } else if (errorData?.message) {
