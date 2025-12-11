@@ -8,63 +8,55 @@
  * Vercel 환경에서도 확실하게 작동하도록 여러 방법을 시도합니다.
  */
 export function getOpenAIApiKey(): string {
-  // Vercel 환경 변수 로딩 (런타임에 확인)
-  const rawKey = process.env.OPENAI_API_KEY
+  // 모든 가능한 환경 변수 이름 시도
+  const possibleKeys = [
+    'OPENAI_API_KEY',
+    'NEXT_PUBLIC_OPENAI_API_KEY',
+    'OPENAI_KEY',
+  ]
   
-  // 상세한 디버깅 정보 (Vercel 함수 로그에서 확인 가능)
-  const debugInfo = {
-    hasRawKey: !!rawKey,
-    rawKeyLength: rawKey?.length || 0,
-    rawKeyPrefix: rawKey ? `${rawKey.substring(0, 10)}...` : 'undefined',
-    nodeEnv: process.env.NODE_ENV,
-    vercelEnv: process.env.VERCEL_ENV,
-    isVercel: !!process.env.VERCEL,
-    allEnvKeys: Object.keys(process.env).filter(k => 
-      k.toUpperCase().includes('OPENAI') || 
-      k.toUpperCase().includes('API') ||
-      k.toUpperCase().includes('KEY')
-    ).join(', '),
-  }
+  let apiKey: string | undefined = undefined
   
-  console.log('[getOpenAIApiKey] 환경 변수 상태:', JSON.stringify(debugInfo, null, 2))
-  
-  // 1순위: OPENAI_API_KEY (Vercel에서 설정한 환경 변수)
-  let apiKey = rawKey
-  
-  // 2순위: 다른 가능한 이름들
-  if (!apiKey) {
-    apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
-    console.log('[getOpenAIApiKey] NEXT_PUBLIC_OPENAI_API_KEY 시도:', !!apiKey)
-  }
-  if (!apiKey) {
-    apiKey = process.env.OPENAI_KEY
-    console.log('[getOpenAIApiKey] OPENAI_KEY 시도:', !!apiKey)
-  }
-  
-  // 공백 제거 및 검증
-  if (apiKey) {
-    apiKey = apiKey.trim()
-    if (apiKey === '' || !apiKey.startsWith('sk-')) {
-      console.error('[getOpenAIApiKey] API 키 형식 오류:', {
-        isEmpty: apiKey === '',
-        startsWithSk: apiKey.startsWith('sk-'),
-        prefix: apiKey.substring(0, 10),
-      })
-      apiKey = undefined
+  // 각 환경 변수 이름을 순서대로 시도
+  for (const keyName of possibleKeys) {
+    const rawValue = process.env[keyName]
+    if (rawValue) {
+      const trimmed = rawValue.trim()
+      if (trimmed && trimmed.startsWith('sk-')) {
+        apiKey = trimmed
+        console.log(`[getOpenAIApiKey] ✅ ${keyName}에서 API 키 로드 성공`)
+        break
+      }
     }
   }
   
+  // 디버깅 정보 (환경 변수가 없을 때만)
   if (!apiKey) {
-    const errorMsg = `OPENAI_API_KEY가 설정되지 않았습니다.\n\n디버그 정보:\n- 환경 변수 존재: ${debugInfo.hasRawKey}\n- Vercel 환경: ${debugInfo.vercelEnv || '로컬'}\n- 사용 가능한 환경 변수: ${debugInfo.allEnvKeys || '없음'}\n\n해결 방법:\n1. Vercel 대시보드 → Settings → Environment Variables\n2. OPENAI_API_KEY 추가 (sk-로 시작하는 실제 API 키)\n3. Production, Preview, Development 모두 체크\n4. Save 후 반드시 Redeploy 실행`
-    console.error('[getOpenAIApiKey] 오류:', errorMsg)
+    const debugInfo = {
+      checkedKeys: possibleKeys,
+      foundKeys: possibleKeys.map(k => ({
+        name: k,
+        exists: !!process.env[k],
+        length: process.env[k]?.length || 0,
+        prefix: process.env[k] ? `${process.env[k].substring(0, 10)}...` : 'undefined',
+        startsWithSk: process.env[k]?.startsWith('sk-') || false,
+      })),
+      nodeEnv: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
+      isVercel: !!process.env.VERCEL,
+      allEnvKeys: Object.keys(process.env).filter(k => 
+        k.toUpperCase().includes('OPENAI') || 
+        k.toUpperCase().includes('API') ||
+        k.toUpperCase().includes('KEY')
+      ),
+    }
+    
+    console.error('[getOpenAIApiKey] ❌ API 키를 찾을 수 없습니다:', JSON.stringify(debugInfo, null, 2))
+    
+    const errorMsg = `OPENAI_API_KEY가 설정되지 않았습니다.\n\n확인된 환경 변수:\n${debugInfo.foundKeys.map(k => `- ${k.name}: ${k.exists ? `존재 (길이: ${k.length}, sk- 시작: ${k.startsWithSk})` : '없음'}`).join('\n')}\n\nVercel 환경: ${debugInfo.vercelEnv || '로컬'}\n\n해결 방법:\n1. Vercel 대시보드 → Settings → Environment Variables\n2. OPENAI_API_KEY 추가 (sk-로 시작하는 실제 API 키)\n3. Production, Preview, Development 모두 체크\n4. Save 후 반드시 Redeploy 실행`
+    
     throw new Error(errorMsg)
   }
-  
-  console.log('[getOpenAIApiKey] API 키 로드 성공:', {
-    length: apiKey.length,
-    prefix: apiKey.substring(0, 7),
-    startsWithSk: apiKey.startsWith('sk-'),
-  })
   
   return apiKey
 }
