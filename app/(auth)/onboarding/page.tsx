@@ -63,9 +63,21 @@ export default function OnboardingPage() {
 
   return (
     <div className="h-screen w-full bg-white flex flex-col overflow-hidden safe-area-top safe-area-bottom">
-      {/* 상단: Progress Dots + 건너뛰기 */}
+      {/* 상단: 로고 + Progress Dots + 건너뛰기 */}
       <header className="flex-shrink-0 px-4 pt-6 pb-4">
-        <div className="flex items-center justify-end mb-3">
+        <div className="flex items-center justify-between mb-3">
+          {/* 로고 */}
+          <div className="flex items-center">
+            <Image
+              src="/images/logo2.png"
+              alt="Reloop"
+              width={100}
+              height={32}
+              className="h-8 w-auto"
+              priority
+            />
+          </div>
+
           {/* 건너뛰기 버튼 (2, 3번째 스텝에만) */}
           {showSkip && (
             <button
