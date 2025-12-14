@@ -76,11 +76,15 @@ export default function AiOnboardingAndChatPage() {
   }
 
   const handleAnalyze = async () => {
+    console.log('[handleAnalyze] 함수 호출됨', { file: !!file, fileName: file?.name, fileSize: file?.size })
+    
     if (!file) {
+      console.warn('[handleAnalyze] 파일이 없음')
       alert('먼저 PDF 파일을 업로드해 주세요.')
       return
     }
 
+    console.log('[handleAnalyze] 분석 시작', { fileName: file.name, fileSize: file.size })
     setIsAnalyzing(true)
     setAnalysisResult(null)
 
@@ -94,10 +98,15 @@ export default function AiOnboardingAndChatPage() {
         formData.append('emotionTag', emotionTag)
       }
 
-      const response = await fetch(getApiUrl('/api/ai/analyze-file'), {
+      const apiUrl = getApiUrl('/api/ai/analyze-file')
+      console.log('[handleAnalyze] API 호출 시작', { apiUrl, method: 'POST', fileSize: file.size })
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
       })
+      
+      console.log('[handleAnalyze] API 응답 받음', { status: response.status, statusText: response.statusText, ok: response.ok })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
