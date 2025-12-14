@@ -123,8 +123,14 @@ export default function AiOnboardingAndChatPage() {
         for (let i = 0; i < totalParts; i++) {
           const partNumber = i + 1
           const start = i * partSize
-          const end = Math.min(start + partSize, file.size)
+          // 마지막 파트는 파일 끝까지
+          const end = i === totalParts - 1 ? file.size : Math.min(start + partSize, file.size)
           const chunk = file.slice(start, end)
+          
+          // 파트 크기 검증 (마지막 파트를 제외한 모든 파트는 최소 5MB 이상)
+          if (chunk.size < 5 * 1024 * 1024 && i < totalParts - 1) {
+            console.warn(`[handleAnalyze] 경고: 파트 ${partNumber}이 최소 크기(5MB)보다 작습니다:`, chunk.size)
+          }
 
           console.log(`[handleAnalyze] 파트 ${partNumber} 업로드 중...`, { start, end, size: chunk.size })
 
