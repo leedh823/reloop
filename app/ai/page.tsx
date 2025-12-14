@@ -115,24 +115,27 @@ export default function AiOnboardingAndChatPage() {
           throw new Error(errorData.error || '업로드 시작 실패')
         }
 
-        const { uploadId, key, totalParts, partSize, clientToken } = await uploadStartResponse.json()
-        console.log('[handleAnalyze] 멀티파트 업로드 시작:', { uploadId, key, totalParts, partSize, hasClientToken: !!clientToken, clientTokenType: typeof clientToken })
+        const { clientToken } = await uploadStartResponse.json()
+        console.log('[handleAnalyze] 클라이언트 토큰 받음:', { hasClientToken: !!clientToken, clientTokenType: typeof clientToken })
 
         // clientToken 검증
         if (!clientToken || typeof clientToken !== 'string') {
           throw new Error('클라이언트 토큰을 받지 못했습니다. 서버 설정을 확인해주세요.')
         }
 
-        // 2. 클라이언트에서 직접 Blob에 업로드 (서버를 거치지 않음)
-        // createMultipartUploader를 사용하여 클라이언트에서 직접 업로드
-        // 중요: 서버에서 생성한 key를 사용해야 토큰의 pathname과 일치합니다
-        const uploader = await createMultipartUploader(key, {
+        // 2. 클라이언트에서 직접 멀티파트 업로드 세션 생성 및 업로드
+        // createMultipartUploader를 사용하여 클라이언트에서 직접 세션 생성 및 업로드
+        const uploader = await createMultipartUploader(file.name, {
           access: 'public',
           contentType: file.type || 'application/octet-stream',
           token: clientToken, // 서버에서 생성한 클라이언트 토큰 사용
         })
 
         console.log('[handleAnalyze] 멀티파트 업로더 생성 완료:', { uploadId: uploader.uploadId, key: uploader.key })
+
+        // 파트 크기 계산 (서버와 동일한 로직)
+        const partSize = 4 * 1024 * 1024 // 4MB per part
+        const totalParts = Math.ceil(file.size / partSize)
 
         // 파일을 청크로 나눠서 각 파트를 클라이언트에서 직접 업로드
         const uploadedParts: Array<{ partNumber: number; etag: string }> = []
