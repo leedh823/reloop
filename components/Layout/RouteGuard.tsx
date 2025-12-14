@@ -11,11 +11,22 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     // 클라이언트 사이드에서만 실행
     if (typeof window === 'undefined') return
 
-    const onboardingCompleted = localStorage.getItem('onboardingCompleted')
-    const guestId = localStorage.getItem('guestId')
-    
     const publicPaths = ['/splash', '/login', '/onboarding', '/profile-onboarding']
     const isPublicPath = publicPaths.includes(pathname)
+
+    // 새로고침 감지: sessionStorage를 사용하여 이전 페이지 추적
+    const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
+    const isRefresh = navigationEntry?.type === 'reload' || 
+                      (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1)
+    
+    // 새로고침 감지 시 스플래시로 이동 (공개 경로 제외)
+    if (isRefresh && !isPublicPath) {
+      router.replace('/splash')
+      return
+    }
+
+    const onboardingCompleted = localStorage.getItem('onboardingCompleted')
+    const guestId = localStorage.getItem('guestId')
 
     // 스플래시는 항상 접근 가능
     if (pathname === '/splash') {
