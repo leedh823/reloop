@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { extractText, getDocumentProxy } from 'unpdf'
+import { downloadFile } from '@/lib/r2'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
-const MAX_PDF_PAGES = 10 // PDF 최대 페이지 수
 
 /**
  * 파일 파싱 API
@@ -16,20 +16,59 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File | null
+    const blobUrl = formData.get('blobUrl') as string | null // R2 public URL
+    const fileKey = formData.get('fileKey') as string | null // R2 파일 키
 
-    if (!file) {
+    let fileToProcess: File | null = file
+    let fileName = file?.name || 'unknown'
+    let fileSize = file?.size || 0
+    let contentType = file?.type || 'application/octet-stream'
+
+    // R2 URL과 파일 키가 있으면 R2에서 파일 다운로드
+    if (blobUrl && fileKey) {
+      console.log('[files/parse] R2에서 파일 다운로드 시작:', { blobUrl, fileKey })
+      try {
+        const fileBuffer = await downloadFile(fileKey)
+        if (!fileBuffer) {
+          throw new Error('R2에서 파일을 찾을 수 없습니다.')
+        }
+        fileSize = fileBuffer.byteLength
+        fileName = fileKey.split('/').pop() || 'unknown'
+        // 파일 확장자를 기반으로 Content-Type 추정
+        const extension = fileName.split('.').pop()?.toLowerCase()
+        const contentTypeMap: { [key: string]: string } = {
+          'pdf': 'application/pdf',
+          'txt': 'text/plain',
+        }
+        contentType = contentTypeMap[extension || ''] || 'application/octet-stream'
+
+        // Buffer를 File 객체로 변환
+        const uint8Array = new Uint8Array(fileBuffer)
+        fileToProcess = new File([uint8Array], fileName, { type: contentType })
+        console.log('[files/parse] R2 파일 다운로드 완료:', { fileName, fileSize, contentType })
+      } catch (error: any) {
+        console.error('[files/parse] R2 다운로드 오류:', error)
+        return NextResponse.json(
+          { ok: false, error: `파일 다운로드 실패: ${error?.message}` },
+          { status: 500 }
+        )
+      }
+    }
+
+    if (!fileToProcess) {
       return NextResponse.json(
-        { ok: false, error: '파일이 필요합니다.' },
+        { ok: false, error: '파일 또는 Blob URL이 필요합니다.' },
         { status: 400 }
       )
     }
 
-    // 파일 크기 검증
-    if (file.size > MAX_FILE_SIZE) {
+    // 파일 크기 검증 (R2를 사용하면 50MB까지 허용)
+    const maxSize = (blobUrl && fileKey) ? MAX_FILE_SIZE : MAX_FILE_SIZE
+    if (fileSize > maxSize) {
       return NextResponse.json(
         {
           ok: false,
-          error: `파일이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 50MB까지 지원합니다.`,
+          error: `파일이 너무 큽니다. (${(fileSize / (1024 * 1024)).toFixed(1)}MB)\n\n최대 50MB까지 지원합니다.`,
         },
         { status: 413 }
       )
@@ -72,17 +111,6 @@ export async function POST(request: NextRequest) {
         const numPages = pdf.numPages || 0
 
         console.log('[files/parse] PDF 문서 로드 완료:', { numPages })
-
-        // PDF 페이지 수 검증
-        if (numPages > MAX_PDF_PAGES) {
-          return NextResponse.json(
-            {
-              ok: false,
-              error: `PDF 파일의 페이지 수가 너무 많습니다. (${numPages}페이지)\n\n최대 ${MAX_PDF_PAGES}페이지까지 지원합니다.`,
-            },
-            { status: 400 }
-          )
-        }
 
         // extractText로 전체 텍스트 추출 시도
         let fullText = ''

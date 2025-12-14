@@ -113,7 +113,7 @@ export default function FileUploadSection({
           ) : (
             <>
               <span className="mr-2">📄</span>
-              <span>PDF 또는 TXT 파일 선택 (PDF 최대 10페이지, 최대 50MB)</span>
+              <span>PDF 또는 TXT 파일 선택 (최대 50MB)</span>
             </>
           )}
         </label>
