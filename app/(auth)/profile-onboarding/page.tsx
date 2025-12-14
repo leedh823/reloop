@@ -83,7 +83,7 @@ function ProfileOnboardingContent() {
   return (
     <div className="min-h-screen bg-white flex flex-col px-4 safe-area-top safe-area-bottom">
       {/* Progress Bar */}
-      <div className="flex-shrink-0 px-4 pt-6 pb-4">
+      <div className="flex-shrink-0 pt-6 pb-4">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-lg font-semibold text-gray-900">
             {isEditMode ? '프로필 수정' : '프로필 설정'}
@@ -112,7 +112,7 @@ function ProfileOnboardingContent() {
       </div>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 py-6">
+      <main className="flex-1 overflow-y-auto py-6">
         {currentStep === 1 && (
           <StepNameGender
             name={profile.name}
@@ -137,13 +137,13 @@ function ProfileOnboardingContent() {
         )}
       </main>
 
-      {/* Footer CTA */}
-      <footer className="flex-shrink-0 px-4 pb-6 pt-4 safe-area-bottom border-t border-gray-200">
+      {/* Footer CTA (온보딩 페이지와 동일한 위치) */}
+      <footer className="flex-shrink-0 pb-8">
         <PrimaryButton
           onClick={handleNext}
           fullWidth
           rounded="lg"
-          className="h-12 min-h-[48px] text-base font-semibold"
+          className="min-h-[48px] text-base font-semibold focus:outline-none active:outline-none"
           disabled={!canProceed()}
         >
           {currentStep === TOTAL_STEPS ? '완료' : '다음'}
