@@ -30,14 +30,21 @@ export default function LoginPage() {
         {/* 로고 */}
         <div className="text-center mb-8">
           <Image
-            src="/images/logo.png"
+            src="/images/logo2.png"
             alt="Reloop"
             width={120}
             height={40}
             className="h-10 w-auto mx-auto mb-3"
             priority
           />
-          <p className="text-gray-600 text-sm">실패를 기록하고 다시 도전하세요</p>
+          <Image
+            src="/images/슬로건.png"
+            alt="실패를 기록하고 다시 도전하세요"
+            width={200}
+            height={40}
+            className="h-8 w-auto mx-auto"
+            priority
+          />
         </div>
 
         {/* 로그인 옵션 */}

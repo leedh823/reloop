@@ -22,19 +22,26 @@ export default function SplashPage() {
         {/* 로고 */}
         <div className="flex items-center justify-center">
           <Image
-            src="/images/logo.png"
+            src="/images/logo1.png"
             alt="Reloop"
             width={120}
-            height={40}
-            className="h-12 w-auto"
+            height={120}
+            className="h-24 w-24 object-contain"
             priority
           />
         </div>
 
         {/* 슬로건 */}
-        <p className="text-white text-lg font-medium text-center px-4">
-          실패를 기록하고 다시 도전하세요
-        </p>
+        <div className="flex items-center justify-center">
+          <Image
+            src="/images/슬로건.png"
+            alt="실패를 기록하고 다시 도전하세요"
+            width={200}
+            height={40}
+            className="h-10 w-auto object-contain"
+            priority
+          />
+        </div>
       </div>
     </div>
   )

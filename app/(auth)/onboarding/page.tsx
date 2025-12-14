@@ -55,7 +55,7 @@ export default function OnboardingPage() {
           {/* 로고 */}
           <div className="flex items-center">
             <Image
-              src="/images/logo.png"
+              src="/images/logo2.png"
               alt="Reloop"
               width={100}
               height={32}

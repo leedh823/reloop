@@ -14,6 +14,14 @@ body {
   /* 모바일에서 주소창이 덜 거슬리게 */
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
+  /* 주소창 최소화 - 스크롤 시 자동으로 숨겨짐 */
+  min-height: 100vh;
+  min-height: -webkit-fill-available; /* iOS Safari */
+}
+
+html {
+  /* iOS Safari 주소창 최소화 */
+  height: -webkit-fill-available;
 }
 
 /* iOS Safe Area 대응 */
