@@ -118,19 +118,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // 멀티파트 업로드 생성
-    // 각 파트는 최소 5MB 이상이어야 함 (Vercel Blob 제한)
-    // 마지막 파트를 제외한 모든 파트는 최소 크기 이상이어야 함
-    const minPartSize = 5 * 1024 * 1024 // 5MB 최소 크기
-    const partSize = 5 * 1024 * 1024 // 5MB per part (최소 크기 보장)
-    
-    let totalParts = Math.ceil(fileSize / partSize)
-    
-    // 마지막 파트가 최소 크기보다 작으면 파트 수 조정
-    const lastPartSize = fileSize % partSize
-    if (lastPartSize > 0 && lastPartSize < minPartSize && totalParts > 1) {
-      // 마지막 파트가 너무 작으면 이전 파트와 합치기 위해 파트 수 감소
-      totalParts = Math.max(1, totalParts - 1)
-    }
+    // 각 파트는 서버를 통해 업로드되므로 Vercel의 4.5MB 제한을 받음
+    // 따라서 파트 크기는 4MB로 설정 (마지막 파트는 작을 수 있음)
+    const partSize = 4 * 1024 * 1024 // 4MB per part (Vercel 제한 고려)
+    const totalParts = Math.ceil(fileSize / partSize)
 
     console.log('[upload-file] 파트 크기 계산:', {
       fileSize,
