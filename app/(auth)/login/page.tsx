@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { clearProfile } from '@/lib/storage/profile'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -20,14 +21,11 @@ export default function LoginPage() {
     const guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
     localStorage.setItem('guestId', guestId)
     
-    // 프로필 온보딩 체크
-    const { getProfile } = require('@/lib/storage/profile')
-    const profile = getProfile()
-    if (!profile || !profile.completed) {
-      router.push('/profile-onboarding')
-    } else {
-      router.push('/home')
-    }
+    // 프로필 초기화 (작성한 글은 유지)
+    clearProfile()
+    
+    // 무조건 프로필 온보딩으로 이동
+    router.push('/profile-onboarding')
   }
 
   const handleKakaoLogin = () => {

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { getProfile } from '@/lib/storage/profile'
+import { getProfile, clearProfile } from '@/lib/storage/profile'
 
 export default function RouteGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -52,15 +52,21 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
       return
     }
 
-    // 프로필 온보딩이 완료되지 않았으면 프로필 온보딩으로 (단, /me 페이지는 예외)
-    if (onboardingCompleted && guestId && (!profile || !profile.completed) && pathname !== '/profile-onboarding' && pathname !== '/me') {
+    // 무조건 프로필 온보딩으로 리다이렉트 (단, /me 페이지와 /profile-onboarding은 예외)
+    if (onboardingCompleted && guestId && pathname !== '/profile-onboarding' && pathname !== '/me') {
+      // 프로필 초기화 (작성한 글은 유지)
+      const profile = getProfile()
+      if (profile && profile.completed) {
+        // 프로필이 완료되어 있으면 초기화
+        clearProfile()
+      }
       router.replace('/profile-onboarding')
       return
     }
 
-    // 모든 가드를 통과하고, 온보딩 완료 후 루트 접근 시 홈으로 리다이렉트
-    if (pathname === '/' && onboardingCompleted && guestId && profile?.completed) {
-      router.replace('/home')
+    // 모든 가드를 통과하고, 온보딩 완료 후 루트 접근 시 프로필 온보딩으로 리다이렉트
+    if (pathname === '/' && onboardingCompleted && guestId) {
+      router.replace('/profile-onboarding')
       return
     }
   }, [pathname, router])
