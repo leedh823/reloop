@@ -99,10 +99,10 @@ export async function POST(request: NextRequest) {
 
     // 파일 내용 추출
     if (fileExtension === 'txt') {
-      extractedText = await file.text()
+      extractedText = await fileToProcess.text()
     } else if (fileExtension === 'pdf') {
       try {
-        const arrayBuffer = await file.arrayBuffer()
+        const arrayBuffer = await fileToProcess.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
         // unpdf 사용
