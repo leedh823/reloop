@@ -138,3 +138,7 @@ USE_SUPABASE_EDGE_FUNCTIONS=false (또는 설정하지 않음)
 3. **IP 제한**: OpenAI API 키에 IP 제한이 설정되어 있다면 Vercel/Supabase IP를 허용 목록에 추가해야 합니다.
 
 
+
+
+
+

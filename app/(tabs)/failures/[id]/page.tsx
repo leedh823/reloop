@@ -7,7 +7,7 @@ import { getFailureById, deleteFailure, updateFailure } from '@/lib/storage/fail
 import FailureDetailHeader from '@/components/Failures/FailureDetailHeader'
 import AISummarySection from '@/components/Failures/AISummarySection'
 import FileUploadSection from '@/components/Failures/FileUploadSection'
-import FilePreviewCard from '@/components/Failures/FilePreviewCard'
+import CommentDrawer from '@/components/Failures/CommentDrawer'
 import ConfirmModal from '@/components/UI/ConfirmModal'
 import { getCategoryLabel } from '@/lib/constants/categories'
 import { getEmotionLabel } from '@/lib/constants/emotions'
@@ -106,6 +106,30 @@ export default function FailureDetailPage() {
     alert(error)
   }
 
+  const handleAddComment = (comment: { authorName: string; avatarId?: string; content: string }) => {
+    if (!failure) return
+
+    try {
+      const existingComments = failure.comments || []
+      const newComment = {
+        id: `comment_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        ...comment,
+        createdAt: new Date().toISOString(),
+      }
+
+      const updated = updateFailure(id, {
+        comments: [...existingComments, newComment],
+      })
+
+      if (updated) {
+        setFailure(updated)
+        setIsCommentDrawerOpen(false)
+      }
+    } catch (error) {
+      console.error('[failure-detail] 댓글 추가 오류:', error)
+      alert('댓글 추가에 실패했습니다.')
+    }
+  }
 
   const formatDate = (isoString: string) => {
     const date = new Date(isoString)
@@ -151,31 +175,6 @@ export default function FailureDetailPage() {
         </div>
       </div>
     )
-  }
-
-  const handleAddComment = (comment: { authorName: string; avatarId?: string; content: string }) => {
-    if (!failure) return
-
-    try {
-      const existingComments = failure.comments || []
-      const newComment = {
-        id: `comment_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-        ...comment,
-        createdAt: new Date().toISOString(),
-      }
-
-      const updated = updateFailure(id, {
-        comments: [...existingComments, newComment],
-      })
-
-      if (updated) {
-        setFailure(updated)
-        setIsCommentDrawerOpen(false)
-      }
-    } catch (error) {
-      console.error('[failure-detail] 댓글 추가 오류:', error)
-      alert('댓글 추가에 실패했습니다.')
-    }
   }
 
   return (

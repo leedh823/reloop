@@ -1,17 +1,18 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { FeedItem } from '@/lib/feed/buildFeed'
 import { getCategoryLabel } from '@/lib/constants/categories'
 import { getEmotionLabel } from '@/lib/constants/emotions'
 
-const AVATARS: { [key: string]: string } = {
-  avatar1: '😊',
-  avatar2: '😎',
-  avatar3: '🤔',
-  avatar4: '😄',
-  avatar5: '🙂',
-  avatar6: '😌',
+const AVATAR_IMAGES: { [key: string]: string } = {
+  avatar1: '/images/프로필 1.png',
+  avatar2: '/images/프로필 2.png',
+  avatar3: '/images/프로필3.png',
+  avatar4: '/images/프로필 4.png',
+  avatar5: '/images/프로필 5.png',
+  avatar6: '/images/프로필 6.png',
 }
 
 interface FeedCardProps {
@@ -36,7 +37,7 @@ export default function FeedCard({ item }: FeedCardProps) {
     }
   }
 
-  const avatarEmoji = item.avatarId ? AVATARS[item.avatarId] || '👤' : '👤'
+  const avatarImage = item.avatarId ? AVATAR_IMAGES[item.avatarId] : null
 
   return (
     <Link href={`/failures/${item.id}`}>
@@ -44,8 +45,18 @@ export default function FeedCard({ item }: FeedCardProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 pb-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-xl flex-shrink-0">
-              {avatarEmoji}
+            <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden flex items-center justify-center flex-shrink-0">
+              {avatarImage ? (
+                <Image
+                  src={avatarImage}
+                  alt="Avatar"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-xl">👤</span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">
@@ -143,4 +154,8 @@ export default function FeedCard({ item }: FeedCardProps) {
     </Link>
   )
 }
+
+
+
+
 

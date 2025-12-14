@@ -1,15 +1,12 @@
 {
-  "name": "Reloop - 실패를 공유하고 다시 도전하세요",
+  "name": "Reloop - 실패를 기록하고 다시 도전하세요",
   "short_name": "Reloop",
-  "description": "실패를 공유하고 디스코드에서 함께 이야기할 수 있는 커뮤니티",
+  "description": "실패를 기록하고 다시 도전하세요",
   "start_url": "/",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen", "minimal-ui"],
   "background_color": "#000000",
-  "theme_color": "#000000",
+  "theme_color": "#3B82F6",
   "orientation": "portrait",
-  "scope": "/",
-  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/images/logo1.png",
@@ -23,6 +20,7 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["lifestyle", "productivity"],
+  "screenshots": []
 }
-

@@ -10,7 +10,7 @@ interface FailureDetailHeaderProps {
   onComment?: () => void
 }
 
-export default function FailureDetailHeader({ onEdit, onDelete }: FailureDetailHeaderProps) {
+export default function FailureDetailHeader({ onEdit, onDelete, onComment }: FailureDetailHeaderProps) {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -46,6 +46,17 @@ export default function FailureDetailHeader({ onEdit, onDelete }: FailureDetailH
         onClose={() => setIsMenuOpen(false)}
       >
         <div className="space-y-2">
+          {onComment && (
+            <button
+              onClick={() => {
+                setIsMenuOpen(false)
+                onComment()
+              }}
+              className="w-full text-left px-4 py-3 min-h-[48px] bg-[#2A2A2A] rounded-lg text-white hover:bg-[#333333] transition-colors"
+            >
+              댓글
+            </button>
+          )}
           <button
             onClick={() => {
               setIsMenuOpen(false)
