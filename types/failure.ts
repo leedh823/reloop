@@ -12,6 +12,7 @@ export interface Failure {
   emotion?: string
   createdAt: string // ISO string
   aiStatus?: 'none' | 'done'
+  pdfUrl?: string
   aiResult?: {
     aiSummary?: string
     aiRootCause?: string
