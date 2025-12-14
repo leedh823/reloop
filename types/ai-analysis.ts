@@ -27,6 +27,8 @@ export interface AnalyzeFileResponse {
     status?: number
     code?: string
     type?: string
+    errorName?: string
+    timestamp?: string
   }
 }
 

@@ -22,15 +22,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   // 함수 진입 확인 로그 (가장 먼저 실행)
-  console.log('[analyze-file] POST 함수 진입:', {
-    timestamp: new Date().toISOString(),
-    url: request.url,
-    method: request.method,
-    hasBody: !!request.body,
+  const startTime = Date.now()
+  console.log('[analyze-file] ========== POST 함수 진입 ==========')
+  console.log('[analyze-file] 진입 시간:', new Date().toISOString())
+  console.log('[analyze-file] 요청 URL:', request.url)
+  console.log('[analyze-file] 요청 메서드:', request.method)
+  console.log('[analyze-file] Content-Type:', request.headers.get('content-type'))
+  console.log('[analyze-file] Content-Length:', request.headers.get('content-length'))
+  console.log('[analyze-file] 환경 변수 확인:', {
+    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+    keyPrefix: process.env.OPENAI_API_KEY?.substring(0, 7) || '없음',
+    nodeEnv: process.env.NODE_ENV,
+    vercelEnv: process.env.VERCEL_ENV,
+    isVercel: !!process.env.VERCEL,
   })
   
   try {
-    console.log('[analyze-file] FormData 파싱 시작')
+    console.log('[analyze-file] FormData 파싱 시작...')
     const formData = await request.formData()
     console.log('[analyze-file] FormData 파싱 완료')
     const file = formData.get('file') as File | null
@@ -284,18 +292,37 @@ export async function POST(request: NextRequest) {
       data: result,
     })
   } catch (error: any) {
-    console.error('[analyze-file] 최상위 오류:', {
+    const errorDetails = {
       errorName: error?.name,
       errorMessage: error?.message,
-      errorStack: error?.stack?.substring(0, 500),
-    })
+      errorStack: error?.stack?.substring(0, 1000),
+      errorType: typeof error,
+      timestamp: new Date().toISOString(),
+      duration: Date.now() - startTime,
+    }
+    
+    console.error('[analyze-file] ========== 최상위 오류 발생 ==========')
+    console.error('[analyze-file] 오류 상세:', JSON.stringify(errorDetails, null, 2))
     
     const errorMessage = error?.message || '서버 오류가 발생했습니다.'
     const statusCode = error?.message?.includes('접근이 거부') ? 403 : 500
 
+    // 항상 JSON 응답 반환 (Vercel 인프라 레벨 차단과 구분)
     return NextResponse.json<AnalyzeFileResponse>(
-      { success: false, error: errorMessage },
-      { status: statusCode }
+      { 
+        success: false, 
+        error: errorMessage,
+        debug: {
+          errorName: error?.name || undefined,
+          timestamp: new Date().toISOString(),
+        }
+      },
+      { 
+        status: statusCode,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
     )
   }
 }
