@@ -127,9 +127,14 @@ export default function AiOnboardingAndChatPage() {
           const end = i === totalParts - 1 ? file.size : Math.min(start + partSize, file.size)
           const chunk = file.slice(start, end)
           
-          // 파트 크기 확인 (각 파트는 4MB 이하, 마지막 파트는 작을 수 있음)
+          // 파트 크기 확인
           if (chunk.size > 4 * 1024 * 1024) {
             console.warn(`[handleAnalyze] 경고: 파트 ${partNumber}이 4MB를 초과합니다:`, chunk.size)
+          }
+          
+          // 마지막 파트가 너무 작으면 경고 (하지만 업로드는 시도)
+          if (i === totalParts - 1 && chunk.size < 1 * 1024 * 1024) {
+            console.warn(`[handleAnalyze] 경고: 마지막 파트가 1MB보다 작습니다:`, chunk.size)
           }
 
           console.log(`[handleAnalyze] 파트 ${partNumber} 업로드 중...`, { start, end, size: chunk.size })
