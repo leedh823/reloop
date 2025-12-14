@@ -23,12 +23,12 @@ interface ButtonLinkProps extends BaseButtonProps, Omit<LinkProps, 'href' | 'chi
 
 const baseClasses = {
   primary: {
-    lg: 'bg-reloop-blue text-white px-6 py-3 h-12 md:h-auto rounded-lg font-semibold hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:ring-offset-2 focus:ring-offset-black',
-    full: 'bg-reloop-blue text-white px-6 md:px-8 py-3 md:py-4 h-12 md:h-auto rounded-full text-base md:text-lg font-semibold hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:ring-offset-2 focus:ring-offset-black',
+    lg: 'bg-reloop-blue text-white px-6 py-3 h-12 md:h-auto rounded-lg font-semibold hover:bg-blue-600 transition-colors focus:outline-none active:outline-none focus:ring-0 active:ring-0',
+    full: 'bg-reloop-blue text-white px-6 md:px-8 py-3 md:py-4 h-12 md:h-auto rounded-full text-base md:text-lg font-semibold hover:bg-blue-600 transition-colors focus:outline-none active:outline-none focus:ring-0 active:ring-0',
   },
   secondary: {
-    lg: 'bg-[#111111] text-white border border-[#2A2A2A] px-6 py-3 h-12 md:h-auto rounded-lg font-semibold hover:bg-[#1c1c1c] transition-colors focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:ring-offset-2 focus:ring-offset-black',
-    full: 'bg-[#111111] text-white border border-[#2A2A2A] px-6 md:px-8 py-3 md:py-4 h-12 md:h-auto rounded-full text-base md:text-lg font-semibold hover:bg-[#1c1c1c] transition-colors focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:ring-offset-2 focus:ring-offset-black',
+    lg: 'bg-[#111111] text-white border border-[#2A2A2A] px-6 py-3 h-12 md:h-auto rounded-lg font-semibold hover:bg-[#1c1c1c] transition-colors focus:outline-none active:outline-none focus:ring-0 active:ring-0',
+    full: 'bg-[#111111] text-white border border-[#2A2A2A] px-6 md:px-8 py-3 md:py-4 h-12 md:h-auto rounded-full text-base md:text-lg font-semibold hover:bg-[#1c1c1c] transition-colors focus:outline-none active:outline-none focus:ring-0 active:ring-0',
   },
 }
 
