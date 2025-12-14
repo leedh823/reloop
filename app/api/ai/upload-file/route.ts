@@ -77,6 +77,18 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
+    // BLOB_READ_WRITE_TOKEN 확인
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('[upload-file] BLOB_READ_WRITE_TOKEN이 설정되지 않았습니다.')
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Vercel Blob이 설정되지 않았습니다. Vercel 대시보드에서 Blob 스토리지를 생성해주세요.\n\n설정 방법:\n1. Vercel 대시보드 > Storage > Create Database > Blob\n2. Blob 스토리지 생성 시 BLOB_READ_WRITE_TOKEN이 자동 생성됩니다\n3. 재배포 필요',
+        },
+        { status: 500 }
+      )
+    }
+
     const body = await request.json()
     const { filename, contentType, fileSize } = body
 
