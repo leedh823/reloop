@@ -25,6 +25,13 @@ export interface Failure {
     fileName: string
     fileType: string
   }>
+  comments?: Array<{ // 댓글
+    id: string
+    authorName: string
+    avatarId?: string
+    content: string
+    createdAt: string
+  }>
   aiResult?: {
     aiSummary?: string
     aiRootCause?: string

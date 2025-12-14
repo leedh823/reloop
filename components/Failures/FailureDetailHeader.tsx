@@ -7,6 +7,7 @@ import BottomSheet from '@/components/UI/BottomSheet'
 interface FailureDetailHeaderProps {
   onEdit: () => void
   onDelete: () => void
+  onComment?: () => void
 }
 
 export default function FailureDetailHeader({ onEdit, onDelete }: FailureDetailHeaderProps) {
