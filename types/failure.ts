@@ -13,6 +13,10 @@ export interface Failure {
   createdAt: string // ISO string
   aiStatus?: 'none' | 'done'
   pdfUrl?: string
+  filePreview?: {
+    bullets: string[]
+    possibleIssues: string[]
+  }
   aiResult?: {
     aiSummary?: string
     aiRootCause?: string

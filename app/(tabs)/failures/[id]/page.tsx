@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Failure } from '@/types/failure'
-import { getFailureById, deleteFailure } from '@/lib/storage/failures'
+import { getFailureById, deleteFailure, updateFailure } from '@/lib/storage/failures'
 import FailureDetailHeader from '@/components/Failures/FailureDetailHeader'
 import AISummarySection from '@/components/Failures/AISummarySection'
+import FileUploadSection from '@/components/Failures/FileUploadSection'
+import FilePreviewCard from '@/components/Failures/FilePreviewCard'
 import ConfirmModal from '@/components/UI/ConfirmModal'
 import { getCategoryLabel } from '@/lib/constants/categories'
 import { getEmotionLabel } from '@/lib/constants/emotions'
@@ -26,7 +28,6 @@ export default function FailureDetailPage() {
     try {
       const data = getFailureById(id)
       if (!data) {
-        // NotFound 처리
         setFailure(null)
       } else {
         setFailure(data)
@@ -58,6 +59,43 @@ export default function FailureDetailPage() {
     } catch (error) {
       console.error('[failure-detail] 삭제 오류:', error)
       alert('삭제 중 오류가 발생했습니다.')
+    }
+  }
+
+  const handleFileUploadSuccess = (preview: { bullets: string[]; possibleIssues: string[] }) => {
+    if (!failure) return
+
+    try {
+      const updated = updateFailure(id, {
+        filePreview: preview,
+      })
+
+      if (updated) {
+        setFailure(updated)
+      }
+    } catch (error) {
+      console.error('[failure-detail] 파일 미리보기 저장 오류:', error)
+      alert('파일 미리보기 저장에 실패했습니다.')
+    }
+  }
+
+  const handleFileUploadError = (error: string) => {
+    alert(error)
+  }
+
+  const handleRemoveFilePreview = () => {
+    if (!failure) return
+
+    try {
+      const updated = updateFailure(id, {
+        filePreview: undefined,
+      })
+
+      if (updated) {
+        setFailure(updated)
+      }
+    } catch (error) {
+      console.error('[failure-detail] 파일 미리보기 삭제 오류:', error)
     }
   }
 
@@ -150,6 +188,22 @@ export default function FailureDetailPage() {
                 {failure.detail}
               </p>
             </div>
+          )}
+
+          {/* 파일 업로드 섹션 */}
+          {!failure.filePreview && (
+            <FileUploadSection
+              onUploadSuccess={handleFileUploadSuccess}
+              onUploadError={handleFileUploadError}
+            />
+          )}
+
+          {/* 파일 미리보기 카드 */}
+          {failure.filePreview && (
+            <FilePreviewCard
+              preview={failure.filePreview}
+              onRemove={handleRemoveFilePreview}
+            />
           )}
 
           {/* AI 분석 섹션 */}

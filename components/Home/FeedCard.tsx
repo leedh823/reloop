@@ -60,17 +60,19 @@ export default function FeedCard({ item }: FeedCardProps) {
                 {getCategoryLabel(item.category)}
               </span>
             )}
-            {/* Follow 버튼 (UI만) */}
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                // TODO: 팔로우 기능 구현
-              }}
-              className="text-xs px-3 py-1.5 bg-reloop-blue text-white rounded-full font-medium hover:bg-blue-600 transition-colors min-h-[32px]"
-            >
-              팔로우
-            </button>
+            {/* Follow 버튼 (UI만, 자기 자신이면 숨김) */}
+            {item.authorName !== 'Anonymous' && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  // TODO: 팔로우 기능 구현
+                }}
+                className="text-xs px-3 py-1.5 bg-reloop-blue text-white rounded-full font-medium hover:bg-blue-600 transition-colors min-h-[32px]"
+              >
+                팔로우
+              </button>
+            )}
           </div>
         </div>
 
