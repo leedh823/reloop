@@ -11,6 +11,7 @@
 
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { Readable } from 'stream'
 
 // R2는 S3 호환 API를 사용합니다
 const R2_ENDPOINT = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
@@ -60,6 +61,38 @@ export function getPublicUrl(key: string): string {
   // R2_PUBLIC_URL이 설정되어 있으면 사용, 없으면 기본 R2 URL 사용
   const baseUrl = process.env.R2_PUBLIC_URL || R2_ENDPOINT.replace('.r2.cloudflarestorage.com', '.r2.dev')
   return `${baseUrl}/${key}`
+}
+
+/**
+ * R2에서 파일 다운로드 (서버에서 직접)
+ * @param key 파일 키
+ * @returns 파일 Buffer
+ */
+export async function downloadFile(key: string): Promise<Buffer> {
+  if (!process.env.R2_BUCKET_NAME) {
+    throw new Error('R2_BUCKET_NAME 환경 변수가 설정되지 않았습니다.')
+  }
+
+  const command = new GetObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME,
+    Key: key,
+  })
+
+  const response = await r2Client.send(command)
+  
+  if (!response.Body) {
+    throw new Error('파일을 다운로드할 수 없습니다.')
+  }
+
+  // Stream을 Buffer로 변환
+  const stream = response.Body as Readable
+  const chunks: Uint8Array[] = []
+  
+  for await (const chunk of stream) {
+    chunks.push(chunk)
+  }
+  
+  return Buffer.concat(chunks)
 }
 
 /**

@@ -91,6 +91,7 @@ export default function AiOnboardingAndChatPage() {
 
     try {
       let fileUrl: string | null = null
+      let fileKey: string | null = null // R2 파일 키 (서버에서 다운로드 시 사용)
 
       // 파일 크기가 4MB 이상이면 Presigned URL 방식 사용
       if (file.size > 4 * 1024 * 1024) {
@@ -115,8 +116,8 @@ export default function AiOnboardingAndChatPage() {
           throw new Error(errorData.error || 'Presigned URL 생성 실패')
         }
 
-        const { uploadUrl, publicUrl } = await uploadUrlResponse.json()
-        console.log('[handleAnalyze] Presigned URL 받음:', { hasUploadUrl: !!uploadUrl, publicUrl })
+        const { uploadUrl, publicUrl, key } = await uploadUrlResponse.json()
+        console.log('[handleAnalyze] Presigned URL 받음:', { hasUploadUrl: !!uploadUrl, publicUrl, key })
 
         if (!uploadUrl) {
           throw new Error('Presigned URL을 받지 못했습니다.')
@@ -137,13 +138,18 @@ export default function AiOnboardingAndChatPage() {
         }
 
         fileUrl = publicUrl
-        console.log('[handleAnalyze] 파일 업로드 완료:', fileUrl)
+        fileKey = key // R2 파일 키 저장
+        console.log('[handleAnalyze] 파일 업로드 완료:', { fileUrl, fileKey })
       }
 
       // 분석 API 호출
       const formData = new FormData()
       if (fileUrl) {
         formData.append('blobUrl', fileUrl) // R2 URL도 blobUrl 필드명 사용 (기존 코드 호환)
+        // 파일 키도 함께 전달 (서버에서 R2에서 직접 다운로드 시 사용)
+        if (fileKey) {
+          formData.append('fileKey', fileKey)
+        }
       } else {
         formData.append('file', file)
       }

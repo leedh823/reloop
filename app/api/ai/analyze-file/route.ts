@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AnalyzeFileResponse, FileAnalysisResult } from '@/types'
 import { MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_TEXT_LENGTH, MAX_PDF_SIZE_MB, MAX_OTHER_FILE_SIZE_MB } from '@/lib/constants'
 import { callOpenAIAPI } from '@/lib/openai'
+import { downloadFile } from '@/lib/r2'
 
 // Node.js Runtime 명시 (대용량 파일 처리 필수)
 export const runtime = 'nodejs'
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
     console.log('[analyze-file] FormData 파싱 완료')
     const file = formData.get('file') as File | null
     const blobUrl = formData.get('blobUrl') as string | null
+    const fileKey = formData.get('fileKey') as string | null // R2 파일 키 (직접 다운로드용)
     const description = formData.get('description') as string | null
     const emotionTag = formData.get('emotionTag') as string | null
 
@@ -50,21 +52,64 @@ export async function POST(request: NextRequest) {
     let fileName = file?.name || 'unknown'
     let fileSize = file?.size || 0
 
-    // Blob URL이 있으면 파일 다운로드
+    // R2 URL이 있으면 서버에서 직접 다운로드
     if (blobUrl && !file) {
-      console.log('[analyze-file] Blob URL에서 파일 다운로드 시작:', blobUrl)
+      console.log('[analyze-file] R2에서 파일 다운로드 시작:', { blobUrl, fileKey })
       try {
-        const blobResponse = await fetch(blobUrl)
-        if (!blobResponse.ok) {
-          throw new Error(`Blob 다운로드 실패: ${blobResponse.status}`)
+        // 파일 키가 직접 제공되면 사용, 없으면 URL에서 추출
+        let r2FileKey: string
+        if (fileKey) {
+          r2FileKey = fileKey
+        } else {
+          // R2 URL에서 파일 키 추출
+          // URL 형식: https://account-id.r2.dev/uploads/... 또는 https://custom-domain.com/uploads/...
+          if (blobUrl.includes('.r2.dev/') || blobUrl.includes('.r2.cloudflarestorage.com/')) {
+            // R2 URL에서 키 추출
+            const urlParts = blobUrl.split('/')
+            const keyIndex = urlParts.findIndex(part => part === 'uploads')
+            if (keyIndex !== -1) {
+              r2FileKey = urlParts.slice(keyIndex).join('/')
+            } else {
+              // URL의 마지막 부분을 키로 사용
+              r2FileKey = urlParts[urlParts.length - 1]
+            }
+          } else {
+            // 전체 URL에서 경로 부분 추출
+            try {
+              const url = new URL(blobUrl)
+              r2FileKey = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
+            } catch {
+              // URL 파싱 실패 시 마지막 부분 사용
+              r2FileKey = blobUrl.split('/').pop() || 'unknown'
+            }
+          }
         }
-        const blob = await blobResponse.blob()
-        fileName = blobUrl.split('/').pop() || 'unknown'
-        fileSize = blob.size
-        fileToProcess = new File([blob], fileName, { type: blob.type })
-        console.log('[analyze-file] Blob 파일 다운로드 완료:', { fileName, fileSize })
+
+        console.log('[analyze-file] 사용할 파일 키:', r2FileKey)
+
+        // R2에서 직접 다운로드
+        const fileBuffer = await downloadFile(r2FileKey)
+        fileSize = fileBuffer.length
+        
+        // 파일명 추출 (키에서)
+        fileName = r2FileKey.split('/').pop() || 'unknown'
+        
+        // Content-Type 추정
+        const extension = fileName.split('.').pop()?.toLowerCase() || ''
+        const contentTypeMap: Record<string, string> = {
+          'pdf': 'application/pdf',
+          'txt': 'text/plain',
+          'doc': 'application/msword',
+          'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }
+        const contentType = contentTypeMap[extension] || 'application/octet-stream'
+
+        // Buffer를 File 객체로 변환 (Uint8Array로 변환)
+        const uint8Array = new Uint8Array(fileBuffer)
+        fileToProcess = new File([uint8Array], fileName, { type: contentType })
+        console.log('[analyze-file] R2 파일 다운로드 완료:', { fileName, fileSize, contentType })
       } catch (error: any) {
-        console.error('[analyze-file] Blob 다운로드 오류:', error)
+        console.error('[analyze-file] R2 다운로드 오류:', error)
         return NextResponse.json<AnalyzeFileResponse>(
           { success: false, error: `파일 다운로드 실패: ${error?.message}` },
           { status: 500 }
