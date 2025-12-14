@@ -12,6 +12,7 @@ import ConfirmModal from '@/components/UI/ConfirmModal'
 import { getCategoryLabel } from '@/lib/constants/categories'
 import { getEmotionLabel } from '@/lib/constants/emotions'
 import { PrimaryButton } from '@/components/UI/Button'
+import Image from 'next/image'
 
 export const dynamic = 'force-dynamic'
 
@@ -194,10 +195,13 @@ export default function FailureDetailPage() {
               {failure.images && failure.images.length > 0 ? (
                 failure.images.map((image, index) => (
                   <div key={index} className="relative w-full bg-black">
-                    <img
+                    <Image
                       src={image.url}
                       alt={image.fileName || `이미지 ${index + 1}`}
+                      width={800}
+                      height={600}
                       className="w-full h-auto object-cover"
+                      unoptimized
                     />
                     <button
                       onClick={() => {
@@ -224,10 +228,13 @@ export default function FailureDetailPage() {
                 ))
               ) : failure.fileUrl ? (
                 <div className="relative w-full bg-black">
-                  <img
+                  <Image
                     src={failure.fileUrl}
                     alt={failure.fileName || '이미지'}
+                    width={800}
+                    height={600}
                     className="w-full h-auto object-cover"
+                    unoptimized
                   />
                   <button
                     onClick={() => {
