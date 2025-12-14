@@ -133,7 +133,7 @@ export default function OnboardingPage() {
       </main>
 
       {/* 하단: CTA 버튼 */}
-      <footer className="flex-shrink-0 px-4 pb-8 safe-area-bottom">
+      <footer className="flex-shrink-0 px-4 pb-4 pt-2 safe-area-bottom">
         <PrimaryButton
           onClick={handleNext}
           fullWidth
