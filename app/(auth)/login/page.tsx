@@ -34,32 +34,26 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 safe-area-top safe-area-bottom">
-      <div className="max-w-md w-full space-y-12">
+      <div className="max-w-md w-full space-y-8">
         {/* 로고 영역 - 상단 중앙 */}
         <div className="text-center pt-8">
-          <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center justify-center mb-4">
             <Image
               src="/images/logo1.png"
               alt="Reloop"
               width={120}
               height={120}
-              className="h-24 w-24 object-contain"
+              className="h-20 w-20 object-contain"
               priority
             />
           </div>
-          <div className="flex items-center justify-center">
-            <Image
-              src="/images/슬로건.png"
-              alt="실패를 기록하고 다시 도전하세요"
-              width={200}
-              height={40}
-              className="h-10 w-auto object-contain"
-              priority
-            />
-          </div>
+          <h1 className="text-2xl font-bold text-reloop-blue mb-4">Reloop</h1>
+          <p className="text-reloop-blue text-base font-medium">
+            "We don't stop — we reloop."
+          </p>
         </div>
 
-        {/* 로그인 버튼 영역 - 하단 고정 */}
+        {/* 로그인 버튼 영역 */}
         <div className="space-y-3 pb-8">
           <button
             onClick={handleKakaoLogin}
@@ -71,14 +65,14 @@ export default function LoginPage() {
 
           <button
             onClick={handleGuestLogin}
-            className="w-full min-h-[48px] bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+            className="w-full min-h-[48px] bg-white text-black font-semibold rounded-lg border border-black hover:bg-gray-100 transition-colors"
           >
             게스트로 시작하기
           </button>
 
           <button
             onClick={handleGoogleLogin}
-            className="w-full min-h-[48px] bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+            className="w-full min-h-[48px] bg-white text-black font-semibold rounded-lg border border-black hover:bg-gray-100 transition-colors"
           >
             구글로 시작하기
           </button>
