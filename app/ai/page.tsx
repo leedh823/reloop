@@ -37,10 +37,10 @@ export default function AiOnboardingAndChatPage() {
       return
     }
     
-    // PDF 파일의 경우 추가 경고 (30MB 이상)
-    if (extension === 'pdf' && fileSizeMB > 30) {
+    // PDF 파일의 경우 추가 경고 (3MB 이상)
+    if (extension === 'pdf' && fileSizeMB > 3) {
       const shouldContinue = confirm(
-        `파일 크기가 큽니다 (${fileSizeMB.toFixed(1)}MB). 분석에 시간이 오래 걸리거나 실패할 수 있습니다.\n\n계속하시겠습니까?`
+        `파일 크기가 큽니다 (${fileSizeMB.toFixed(1)}MB). Vercel의 제한(4.5MB)에 가까워 분석에 실패할 수 있습니다.\n\n계속하시겠습니까?`
       )
       if (!shouldContinue) {
         return
@@ -227,10 +227,10 @@ export default function AiOnboardingAndChatPage() {
                     <div className="space-y-2">
                       <p className="text-white font-medium text-base md:text-lg">파일을 드래그하거나 클릭하여 업로드</p>
                       <p className="text-gray-400 text-sm leading-relaxed max-w-md mx-auto">
-                        txt, md, pdf, docx (PDF 최대 {MAX_PDF_SIZE_MB}MB, 기타 최대 {MAX_OTHER_FILE_SIZE_MB}MB)
+                        txt, md, pdf, docx (최대 {MAX_PDF_SIZE_MB}MB)
                       </p>
                       <p className="text-gray-500 text-xs mt-1">
-                        ※ PDF는 20MB 이하를 권장합니다
+                        ※ Vercel 제한으로 4MB 이하만 업로드 가능합니다
                       </p>
                     </div>
                     <button
