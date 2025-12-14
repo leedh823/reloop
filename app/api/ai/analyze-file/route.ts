@@ -159,33 +159,56 @@ export async function POST(request: NextRequest) {
       originalLength = textContent.length
     } else if (fileExtension === 'pdf') {
       try {
+        console.log('[analyze-file] PDF 파싱 시작:', { fileName, fileSize, fileType: fileToProcess.type })
+        
         // PDF 파싱
         const arrayBuffer = await fileToProcess.arrayBuffer()
+        console.log('[analyze-file] ArrayBuffer 생성 완료:', { size: arrayBuffer.byteLength })
+        
         const buffer = Buffer.from(arrayBuffer)
+        console.log('[analyze-file] Buffer 생성 완료:', { length: buffer.length })
 
         // pdf-parse 모듈 로드
         const pdfParseModule = require('pdf-parse')
-        const PDFParse = pdfParseModule.PDFParse || pdfParseModule
+        console.log('[analyze-file] pdf-parse 모듈 로드 완료:', { 
+          hasPDFParse: !!pdfParseModule.PDFParse,
+          hasDefault: !!pdfParseModule.default,
+          moduleKeys: Object.keys(pdfParseModule)
+        })
 
-        if (typeof PDFParse !== 'function') {
-          throw new Error('PDFParse 클래스를 찾을 수 없습니다.')
+        // pdf-parse는 함수로 직접 사용 가능
+        const pdfParse = pdfParseModule.default || pdfParseModule
+        
+        if (typeof pdfParse !== 'function') {
+          console.error('[analyze-file] pdf-parse가 함수가 아닙니다:', typeof pdfParse)
+          throw new Error('pdf-parse 모듈을 올바르게 로드할 수 없습니다.')
         }
 
-        // PDF 파싱
-        const pdfParser = new PDFParse({ data: buffer })
-        const parseOptions = { max: 0, version: '1.10.100' }
+        console.log('[analyze-file] PDF 파싱 실행 중...')
         
         // 타임아웃 설정
         const timeoutDuration = fileSize > 20 * 1024 * 1024 ? 120000 : 90000
-        const parsePromise = pdfParser.getText(parseOptions)
+        
+        // pdf-parse는 Promise를 반환
+        const parsePromise = pdfParse(buffer, {
+          max: 0, // 모든 페이지
+        })
+        
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => {
             reject(new Error('PDF 파싱 시간이 초과되었습니다.'))
           }, timeoutDuration)
         )
 
-        const textResult = await Promise.race([parsePromise, timeoutPromise]) as any
-        textContent = textResult.text || ''
+        const pdfData = await Promise.race([parsePromise, timeoutPromise]) as any
+        console.log('[analyze-file] PDF 파싱 완료:', { 
+          pages: pdfData.numpages,
+          info: pdfData.info,
+          metadata: pdfData.metadata,
+          textLength: pdfData.text?.length || 0
+        })
+        
+        textContent = pdfData.text || ''
         originalLength = textContent.length
 
         if (!textContent || textContent.trim().length === 0) {
@@ -197,8 +220,16 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           )
         }
+        
+        console.log('[analyze-file] PDF 텍스트 추출 완료:', { textLength: textContent.length })
       } catch (error: any) {
-        console.error('[analyze-file] PDF 파싱 오류:', error)
+        console.error('[analyze-file] PDF 파싱 오류 상세:', {
+          error: error,
+          message: error?.message,
+          stack: error?.stack,
+          fileName,
+          fileSize,
+        })
         
         let errorMessage = 'PDF 파일을 읽는 중 오류가 발생했습니다.'
         let statusCode = 500
@@ -210,6 +241,9 @@ export async function POST(request: NextRequest) {
         } else if (errorMsg.includes('memory') || errorMsg.includes('메모리')) {
           errorMessage = `PDF 파일이 너무 커서 메모리 부족이 발생했습니다. (${(fileSize / (1024 * 1024)).toFixed(1)}MB)\n\n파일을 압축하거나 30MB 이하로 줄여주세요.`
           statusCode = 413
+        } else {
+          // 구체적인 오류 메시지 포함
+          errorMessage = `PDF 파일을 읽는 중 오류가 발생했습니다: ${errorMsg}`
         }
 
         return NextResponse.json<AnalyzeFileResponse>(
