@@ -299,8 +299,9 @@ export default function FailureDetailPage() {
               onUploadError={handleFileUploadError}
             />
 
-          {/* AI 분석 섹션 */}
-          <AISummarySection failure={failure} />
+            {/* AI 분석 섹션 */}
+            <AISummarySection failure={failure} />
+          </div>
         </div>
       </main>
 
