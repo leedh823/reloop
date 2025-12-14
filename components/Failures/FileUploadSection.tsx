@@ -41,21 +41,64 @@ export default function FileUploadSection({
     setUploading(true)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch('/api/files/parse', {
+      // 1. Presigned URL 생성
+      const uploadResponse = await fetch('/api/ai/upload-file', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || (fileExtension === 'pdf' ? 'application/pdf' : 'text/plain'),
+          fileSize: file.size,
+        }),
       })
 
-      const data = await response.json()
-
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || '파일 파싱에 실패했습니다.')
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({ error: '업로드 URL 생성 실패' }))
+        throw new Error(errorData.error || '업로드 URL 생성 실패')
       }
 
-      onUploadSuccess(data.structuredPreview)
+      const { uploadUrl, publicUrl, key } = await uploadResponse.json()
+
+      // 2. R2에 직접 파일 업로드
+      const uploadResult = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type || (fileExtension === 'pdf' ? 'application/pdf' : 'text/plain'),
+        },
+      })
+
+      if (!uploadResult.ok) {
+        throw new Error('파일 업로드 실패')
+      }
+
+      // 3. 파일 파싱 요청 (R2 URL 사용 - 파일은 전송하지 않음)
+      const parseFormData = new FormData()
+      parseFormData.append('blobUrl', publicUrl)
+      parseFormData.append('fileKey', key)
+      // 파일은 전송하지 않음 (R2에서 다운로드)
+
+      const parseResponse = await fetch('/api/files/parse', {
+        method: 'POST',
+        body: parseFormData,
+      })
+
+      // 응답이 JSON인지 확인
+      const contentType = parseResponse.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await parseResponse.text()
+        throw new Error(`서버 오류 (${parseResponse.status}): ${text.substring(0, 200)}`)
+      }
+
+      const parseData = await parseResponse.json()
+
+      if (!parseResponse.ok || !parseData.ok) {
+        throw new Error(parseData.error || '파일 파싱에 실패했습니다.')
+      }
+
+      onUploadSuccess(parseData.structuredPreview)
     } catch (error: any) {
       console.error('[FileUploadSection] 업로드 오류:', error)
       onUploadError(error?.message || '파일 업로드 중 오류가 발생했습니다.')
