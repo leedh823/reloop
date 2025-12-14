@@ -42,27 +42,55 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     console.log('[analyze-file] FormData 파싱 완료')
     const file = formData.get('file') as File | null
+    const blobUrl = formData.get('blobUrl') as string | null
     const description = formData.get('description') as string | null
     const emotionTag = formData.get('emotionTag') as string | null
 
-    if (!file) {
+    let fileToProcess: File | null = file
+    let fileName = file?.name || 'unknown'
+    let fileSize = file?.size || 0
+
+    // Blob URL이 있으면 파일 다운로드
+    if (blobUrl && !file) {
+      console.log('[analyze-file] Blob URL에서 파일 다운로드 시작:', blobUrl)
+      try {
+        const blobResponse = await fetch(blobUrl)
+        if (!blobResponse.ok) {
+          throw new Error(`Blob 다운로드 실패: ${blobResponse.status}`)
+        }
+        const blob = await blobResponse.blob()
+        fileName = blobUrl.split('/').pop() || 'unknown'
+        fileSize = blob.size
+        fileToProcess = new File([blob], fileName, { type: blob.type })
+        console.log('[analyze-file] Blob 파일 다운로드 완료:', { fileName, fileSize })
+      } catch (error: any) {
+        console.error('[analyze-file] Blob 다운로드 오류:', error)
+        return NextResponse.json<AnalyzeFileResponse>(
+          { success: false, error: `파일 다운로드 실패: ${error?.message}` },
+          { status: 500 }
+        )
+      }
+    }
+
+    if (!fileToProcess) {
       return NextResponse.json<AnalyzeFileResponse>(
-        { success: false, error: '파일이 필요합니다.' },
+        { success: false, error: '파일 또는 Blob URL이 필요합니다.' },
         { status: 400 }
       )
     }
 
-    // 파일 크기 체크
-    const fileExtension = file.name.split('.').pop()?.toLowerCase()
+    // 파일 크기 체크 (Blob을 사용하면 50MB까지 허용)
+    const fileExtension = fileName.split('.').pop()?.toLowerCase()
     const isPdf = fileExtension === 'pdf'
-    const maxSize = isPdf ? MAX_PDF_SIZE_BYTES : MAX_OTHER_FILE_SIZE_BYTES
-    const maxSizeMB = isPdf ? MAX_PDF_SIZE_MB : MAX_OTHER_FILE_SIZE_MB
+    // Blob URL을 사용하면 더 큰 파일 허용 (50MB)
+    const maxSize = blobUrl ? (50 * 1024 * 1024) : (isPdf ? MAX_PDF_SIZE_BYTES : MAX_OTHER_FILE_SIZE_BYTES)
+    const maxSizeMB = blobUrl ? 50 : (isPdf ? MAX_PDF_SIZE_MB : MAX_OTHER_FILE_SIZE_MB)
 
-    if (file.size > maxSize) {
+    if (fileSize > maxSize) {
       return NextResponse.json<AnalyzeFileResponse>(
         {
           success: false,
-          error: `파일 용량이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 ${maxSizeMB}MB까지 지원합니다. 파일을 압축하거나 분할해주세요.`
+          error: `파일 용량이 너무 큽니다. (${(fileSize / (1024 * 1024)).toFixed(1)}MB)\n\n최대 ${maxSizeMB}MB까지 지원합니다. 파일을 압축하거나 분할해주세요.`
         },
         { status: 413 }
       )
@@ -70,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     // 파일 타입 체크
     const allowedTypes = ['text/plain', 'text/markdown', 'application/pdf']
-    if (!allowedTypes.includes(file.type) && !['txt', 'md', 'pdf'].includes(fileExtension || '')) {
+    if (!allowedTypes.includes(fileToProcess.type) && !['txt', 'md', 'pdf'].includes(fileExtension || '')) {
       return NextResponse.json<AnalyzeFileResponse>(
         { success: false, error: '지원하지 않는 파일 형식입니다. (txt, md, pdf만 지원)' },
         { status: 400 }
@@ -82,12 +110,12 @@ export async function POST(request: NextRequest) {
     let originalLength = 0
 
     if (fileExtension === 'txt' || fileExtension === 'md') {
-      textContent = await file.text()
+      textContent = await fileToProcess.text()
       originalLength = textContent.length
     } else if (fileExtension === 'pdf') {
       try {
         // PDF 파싱
-        const arrayBuffer = await file.arrayBuffer()
+        const arrayBuffer = await fileToProcess.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
         // pdf-parse 모듈 로드
@@ -103,7 +131,7 @@ export async function POST(request: NextRequest) {
         const parseOptions = { max: 0, version: '1.10.100' }
         
         // 타임아웃 설정
-        const timeoutDuration = file.size > 20 * 1024 * 1024 ? 120000 : 90000
+        const timeoutDuration = fileSize > 20 * 1024 * 1024 ? 120000 : 90000
         const parsePromise = pdfParser.getText(parseOptions)
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => {
@@ -132,10 +160,10 @@ export async function POST(request: NextRequest) {
 
         const errorMsg = error?.message || ''
         if (errorMsg.includes('시간이 초과') || errorMsg.includes('timeout')) {
-          errorMessage = `PDF 파일 분석 시간이 초과되었습니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일이 너무 크거나 복잡합니다. 파일을 압축하거나 더 작은 파일로 시도해주세요.`
+          errorMessage = `PDF 파일 분석 시간이 초과되었습니다. (${(fileSize / (1024 * 1024)).toFixed(1)}MB)\n\n파일이 너무 크거나 복잡합니다. 파일을 압축하거나 더 작은 파일로 시도해주세요.`
           statusCode = 408
         } else if (errorMsg.includes('memory') || errorMsg.includes('메모리')) {
-          errorMessage = `PDF 파일이 너무 커서 메모리 부족이 발생했습니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n파일을 압축하거나 30MB 이하로 줄여주세요.`
+          errorMessage = `PDF 파일이 너무 커서 메모리 부족이 발생했습니다. (${(fileSize / (1024 * 1024)).toFixed(1)}MB)\n\n파일을 압축하거나 30MB 이하로 줄여주세요.`
           statusCode = 413
         }
 

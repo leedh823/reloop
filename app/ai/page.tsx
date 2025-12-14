@@ -37,10 +37,10 @@ export default function AiOnboardingAndChatPage() {
       return
     }
     
-    // PDF 파일의 경우 추가 경고 (3MB 이상)
-    if (extension === 'pdf' && fileSizeMB > 3) {
+    // PDF 파일의 경우 추가 경고 (30MB 이상)
+    if (extension === 'pdf' && fileSizeMB > 30) {
       const shouldContinue = confirm(
-        `파일 크기가 큽니다 (${fileSizeMB.toFixed(1)}MB). Vercel의 제한(4.5MB)에 가까워 분석에 실패할 수 있습니다.\n\n계속하시겠습니까?`
+        `파일 크기가 큽니다 (${fileSizeMB.toFixed(1)}MB). 분석에 시간이 오래 걸리거나 실패할 수 있습니다.\n\n계속하시겠습니까?`
       )
       if (!shouldContinue) {
         return
@@ -80,7 +80,7 @@ export default function AiOnboardingAndChatPage() {
     
     if (!file) {
       console.warn('[handleAnalyze] 파일이 없음')
-      alert('먼저 PDF 파일을 업로드해 주세요.')
+      alert('먼저 파일을 업로드해 주세요.')
       return
     }
 
@@ -89,8 +89,40 @@ export default function AiOnboardingAndChatPage() {
     setAnalysisResult(null)
 
     try {
+      let blobUrl: string | null = null
+
+      // 파일 크기가 4MB 이상이면 Blob에 업로드
+      if (file.size > 4 * 1024 * 1024) {
+        console.log('[handleAnalyze] 파일이 4MB 이상이므로 Blob에 업로드:', { fileSize: file.size })
+        
+        const uploadFormData = new FormData()
+        uploadFormData.append('file', file)
+        
+        const uploadUrl = getApiUrl('/api/ai/upload-file')
+        console.log('[handleAnalyze] Blob 업로드 시작:', uploadUrl)
+        
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'POST',
+          body: uploadFormData,
+        })
+        
+        if (!uploadResponse.ok) {
+          const uploadError = await uploadResponse.json().catch(() => ({}))
+          throw new Error(uploadError.error || '파일 업로드 실패')
+        }
+        
+        const uploadData = await uploadResponse.json()
+        blobUrl = uploadData.url
+        console.log('[handleAnalyze] Blob 업로드 완료:', blobUrl)
+      }
+
+      // 분석 API 호출
       const formData = new FormData()
-      formData.append('file', file)
+      if (blobUrl) {
+        formData.append('blobUrl', blobUrl)
+      } else {
+        formData.append('file', file)
+      }
       if (description) {
         formData.append('description', description)
       }
@@ -99,14 +131,19 @@ export default function AiOnboardingAndChatPage() {
       }
 
       const apiUrl = getApiUrl('/api/ai/analyze-file')
-      console.log('[handleAnalyze] API 호출 시작', { apiUrl, method: 'POST', fileSize: file.size })
+      console.log('[handleAnalyze] 분석 API 호출 시작', { 
+        apiUrl, 
+        method: 'POST', 
+        fileSize: file.size,
+        usingBlob: !!blobUrl,
+      })
       
       const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
       })
       
-      console.log('[handleAnalyze] API 응답 받음', { status: response.status, statusText: response.statusText, ok: response.ok })
+      console.log('[handleAnalyze] 분석 API 응답 받음', { status: response.status, statusText: response.statusText, ok: response.ok })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -132,7 +169,7 @@ export default function AiOnboardingAndChatPage() {
         } else if (response.status === 401) {
           errorMessage = 'OpenAI API 인증에 실패했습니다. 관리자에게 문의해주세요.'
         } else if (response.status === 413) {
-          errorMessage = errorData.error || '파일 크기가 너무 큽니다.'
+          errorMessage = errorData.error || '파일 크기가 너무 큽니다. (최대 50MB)'
         } else if (response.status === 500) {
           errorMessage = errorData.error || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
         }
@@ -230,7 +267,7 @@ export default function AiOnboardingAndChatPage() {
                         txt, md, pdf, docx (최대 {MAX_PDF_SIZE_MB}MB)
                       </p>
                       <p className="text-gray-500 text-xs mt-1">
-                        ※ Vercel 제한으로 4MB 이하만 업로드 가능합니다
+                        ※ 4MB 이상 파일은 자동으로 Blob 스토리지를 통해 업로드됩니다
                       </p>
                     </div>
                     <button
