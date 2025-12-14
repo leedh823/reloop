@@ -182,8 +182,10 @@ export async function PATCH(request: NextRequest) {
     })
 
     // 멀티파트 업로드 완료
-    // 타입 오류 우회 (실제 API 확인 필요)
-    const blob = await (completeMultipartUpload as any)(key, uploadId, parts)
+    // access 옵션 추가 (createMultipartUpload와 동일하게 'public' 설정)
+    const blob = await (completeMultipartUpload as any)(key, uploadId, parts, {
+      access: 'public',
+    })
 
     console.log('[upload-file] 멀티파트 업로드 완료 성공:', {
       url: blob.url,
