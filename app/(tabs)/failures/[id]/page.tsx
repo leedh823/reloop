@@ -215,24 +215,49 @@ export default function FailureDetailPage() {
                    </div>
                    <div className="w-full">
                      {failure.fileType === 'application/pdf' ? (
-                       <iframe
-                         src={failure.fileUrl}
-                         className="w-full h-[600px] border border-[#2A2A2A] rounded"
-                         title={failure.fileName || 'PDF 파일'}
-                       />
-                     ) : failure.fileType?.startsWith('image/') ? (
-                       <img
-                         src={failure.fileUrl}
-                         alt={failure.fileName || '이미지'}
-                         className="w-full h-auto rounded"
-                       />
-                     ) : (
-                       <div className="bg-[#2A2A2A] rounded p-4 text-center">
+                       <div className="bg-[#2A2A2A] rounded p-6 text-center space-y-4">
+                         <div className="text-6xl mb-4">📄</div>
+                         <p className="text-white text-sm mb-4">{failure.fileName || 'PDF 파일'}</p>
                          <a
                            href={failure.fileUrl}
                            target="_blank"
                            rel="noopener noreferrer"
-                           className="text-reloop-blue hover:underline"
+                           className="inline-block px-6 py-3 bg-reloop-blue text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors min-h-[48px]"
+                         >
+                           PDF 보기
+                         </a>
+                       </div>
+                     ) : failure.fileType?.startsWith('image/') ? (
+                       <img
+                         src={failure.fileUrl}
+                         alt={failure.fileName || '이미지'}
+                         className="w-full h-auto rounded max-h-[600px] object-contain"
+                         onError={(e) => {
+                           const target = e.target as HTMLImageElement
+                           target.style.display = 'none'
+                           const parent = target.parentElement
+                           if (parent) {
+                             parent.innerHTML = `
+                               <div class="bg-[#2A2A2A] rounded p-6 text-center">
+                                 <div class="text-6xl mb-4">🖼️</div>
+                                 <p class="text-white text-sm mb-4">${failure.fileName || '이미지'}</p>
+                                 <a href="${failure.fileUrl}" target="_blank" rel="noopener noreferrer" class="inline-block px-6 py-3 bg-reloop-blue text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors min-h-[48px]">
+                                   이미지 보기
+                                 </a>
+                               </div>
+                             `
+                           }
+                         }}
+                       />
+                     ) : (
+                       <div className="bg-[#2A2A2A] rounded p-6 text-center space-y-4">
+                         <div className="text-6xl mb-4">📎</div>
+                         <p className="text-white text-sm mb-4">{failure.fileName || '파일'}</p>
+                         <a
+                           href={failure.fileUrl}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="inline-block px-6 py-3 bg-reloop-blue text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors min-h-[48px]"
                          >
                            파일 다운로드
                          </a>
