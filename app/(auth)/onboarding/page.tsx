@@ -61,7 +61,14 @@ export default function OnboardingPage() {
 
   const handleSkip = () => {
     localStorage.setItem('onboardingCompleted', 'true')
-    router.push('/home')
+    // 프로필 온보딩 체크
+    const { getProfile } = require('@/lib/storage/profile')
+    const profile = getProfile()
+    if (!profile || !profile.completed) {
+      router.push('/profile-onboarding')
+    } else {
+      router.push('/home')
+    }
   }
 
   const currentStepData = onboardingSteps[currentStep]

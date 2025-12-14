@@ -6,6 +6,7 @@ import { Failure } from '@/types/failure'
 import { getFailures } from '@/lib/storage/failures'
 import FailureCard from '@/components/Failures/FailureCard'
 import EmptyState from '@/components/Failures/EmptyState'
+import SearchBar from '@/components/Failures/SearchBar'
 import { CATEGORIES } from '@/lib/constants/categories'
 import { EMOTIONS } from '@/lib/constants/emotions'
 
@@ -17,6 +18,7 @@ export default function FailuresPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedEmotion, setSelectedEmotion] = useState<string>('all')
   const [sortBy, setSortBy] = useState<SortOption>('latest')
+  const [searchQuery, setSearchQuery] = useState<string>('')
 
   // 데이터 로드
   useEffect(() => {
@@ -30,15 +32,30 @@ export default function FailuresPage() {
     }
   }, [])
 
-  // 필터링 및 정렬
+  // 검색 및 필터링 및 정렬
   const filteredAndSorted = failures
     .filter((failure) => {
+      // 검색어 필터
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase()
+        const matchesTitle = failure.title.toLowerCase().includes(query)
+        const matchesSummary = failure.summary.toLowerCase().includes(query)
+        const matchesDetail = failure.detail?.toLowerCase().includes(query) || false
+        if (!matchesTitle && !matchesSummary && !matchesDetail) {
+          return false
+        }
+      }
+
+      // 카테고리 필터
       if (selectedCategory !== 'all' && failure.category !== selectedCategory) {
         return false
       }
+
+      // 감정 필터
       if (selectedEmotion !== 'all' && failure.emotion !== selectedEmotion) {
         return false
       }
+
       return true
     })
     .sort((a, b) => {
@@ -70,6 +87,13 @@ export default function FailuresPage() {
   return (
     <AppShell title="실패" rightAction={rightAction}>
       <div className="px-4 py-4">
+        {/* 검색 바 */}
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="제목, 요약, 내용으로 검색..."
+        />
+
         {/* 필터 영역 */}
         <div className="mb-4 space-y-3">
           {/* 카테고리 필터 */}

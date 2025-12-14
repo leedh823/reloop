@@ -14,39 +14,42 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
 
     const onboardingCompleted = localStorage.getItem('onboardingCompleted')
     const guestId = localStorage.getItem('guestId')
+    const profile = getProfile()
     
-    const publicPaths = ['/onboarding', '/login', '/splash', '/profile-onboarding']
+    const publicPaths = ['/splash', '/login', '/onboarding', '/profile-onboarding']
     const isPublicPath = publicPaths.includes(pathname)
 
-    // 스플래시 페이지는 항상 접근 가능
+    // 스플래시는 항상 접근 가능
     if (pathname === '/splash') {
       return
     }
 
-    // 온보딩 체크
-    if (!onboardingCompleted && !isPublicPath) {
-      router.replace('/onboarding')
+    // 루트 접근 시 스플래시로 이동
+    if (pathname === '/') {
+      router.replace('/splash')
       return
     }
 
-    // 게스트 ID 체크 (온보딩 완료 후)
-    if (onboardingCompleted && !guestId && !isPublicPath) {
+    // 게스트 ID가 없으면 로그인으로
+    if (!guestId && !isPublicPath) {
       router.replace('/login')
       return
     }
 
-    // 프로필 온보딩 체크 (게스트 ID가 있는 경우)
-    if (onboardingCompleted && guestId && !isPublicPath) {
-      const profile = getProfile()
-      // /me 페이지는 프로필이 없어도 접근 가능 (CTA로 설정 가능)
-      if (pathname !== '/me' && (!profile || !profile.completed)) {
-        router.replace('/profile-onboarding')
-        return
-      }
+    // 온보딩이 완료되지 않았으면 온보딩으로
+    if (!onboardingCompleted && guestId && !isPublicPath) {
+      router.replace('/onboarding')
+      return
     }
 
-    // 온보딩 완료 후 루트 접근 시 홈으로 리다이렉트
-    if (pathname === '/' && onboardingCompleted) {
+    // 프로필 온보딩이 완료되지 않았으면 프로필 온보딩으로 (단, /me 페이지는 예외)
+    if (onboardingCompleted && guestId && (!profile || !profile.completed) && pathname !== '/profile-onboarding' && pathname !== '/me') {
+      router.replace('/profile-onboarding')
+      return
+    }
+
+    // 모든 가드를 통과하고, 온보딩 완료 후 루트 접근 시 홈으로 리다이렉트
+    if (pathname === '/' && onboardingCompleted && guestId && profile?.completed) {
       router.replace('/home')
       return
     }
