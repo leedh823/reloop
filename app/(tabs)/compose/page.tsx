@@ -49,8 +49,29 @@ function ComposeForm() {
       } catch (error) {
         console.error('[compose] 데이터 로드 오류:', error)
       }
+    } else {
+      // AI 분석 결과에서 온 경우
+      const fromAnalysis = searchParams.get('fromAnalysis')
+      if (fromAnalysis === 'true') {
+        try {
+          const tempAnalysis = localStorage.getItem('reloop_temp_analysis')
+          if (tempAnalysis) {
+            const analysis = JSON.parse(tempAnalysis)
+            setFormData(prev => ({
+              ...prev,
+              summary: analysis.inputText || prev.summary,
+              category: analysis.category || prev.category,
+              emotion: analysis.emotion || prev.emotion,
+            }))
+            // 임시 데이터 삭제
+            localStorage.removeItem('reloop_temp_analysis')
+          }
+        } catch (error) {
+          console.error('[compose] AI 분석 결과 로드 오류:', error)
+        }
+      }
     }
-  }, [failureId])
+  }, [failureId, searchParams])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
