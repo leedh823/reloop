@@ -1,90 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createMultipartUpload, uploadPart, completeMultipartUpload } from '@vercel/blob'
-import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client'
+import { generateUploadUrl, generateFileKey, getPublicUrl } from '@/lib/r2'
 
 /**
- * 멀티파트 업로드 - 파트 업로드 API
+ * Presigned URL 생성 API
  * 
- * POST /api/ai/upload-file/part
- * Body: FormData { file: File, uploadId: string, key: string, partNumber: number }
- * 
- * Response: { etag: string }
+ * POST /api/ai/upload-file
+ * Body: { filename: string, contentType: string, fileSize: number }
+ * Response: { uploadUrl: string, key: string, publicUrl: string }
  */
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 30
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
-    const file = formData.get('file') as File | null
-    const uploadId = formData.get('uploadId') as string | null
-    const key = formData.get('key') as string | null
-    const partNumberStr = formData.get('partNumber') as string | null
-
-    if (!file || !uploadId || !key || !partNumberStr) {
-      return NextResponse.json(
-        { success: false, error: 'file, uploadId, key, partNumber가 필요합니다.' },
-        { status: 400 }
-      )
-    }
-
-    const partNumber = parseInt(partNumberStr, 10)
-
-    console.log('[upload-file] 파트 업로드:', {
-      partNumber,
-      fileSize: file.size,
-      uploadId,
-      key,
-    })
-
-    // 파트 업로드 (각 파트는 4MB 이하)
-    // uploadPart는 (pathname, body, options) 형태
-    const { etag } = await uploadPart(key, file, {
-      key,
-      uploadId,
-      partNumber,
-      access: 'public',
-    })
-
-    console.log('[upload-file] 파트 업로드 완료:', {
-      partNumber,
-      etag,
-    })
-
-    return NextResponse.json({
-      success: true,
-      etag,
-    })
-  } catch (error: any) {
-    console.error('[upload-file] 파트 업로드 오류:', error)
-    
-    return NextResponse.json(
-      {
-        success: false,
-        error: error?.message || '파트 업로드 중 오류가 발생했습니다.',
-      },
-      { status: 500 }
-    )
-  }
-}
-
-/**
- * 멀티파트 업로드 시작 API
- * 
- * PUT /api/ai/upload-file/start
- * Body: { filename: string, contentType?: string, fileSize: number }
- * 
- * Response: { uploadId: string, key: string, totalParts: number, partSize: number }
- */
-export async function PUT(request: NextRequest) {
-  try {
-    // BLOB_READ_WRITE_TOKEN 확인
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error('[upload-file] BLOB_READ_WRITE_TOKEN이 설정되지 않았습니다.')
+    // R2 설정 확인
+    if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME) {
+      console.error('[upload-file] R2 환경 변수가 설정되지 않았습니다.')
       return NextResponse.json(
         {
           success: false,
-          error: 'Vercel Blob이 설정되지 않았습니다. Vercel 대시보드에서 Blob 스토리지를 생성해주세요.\n\n설정 방법:\n1. Vercel 대시보드 > Storage > Create Database > Blob\n2. Blob 스토리지 생성 시 BLOB_READ_WRITE_TOKEN이 자동 생성됩니다\n3. 재배포 필요',
+          error: 'Cloudflare R2가 설정되지 않았습니다. 환경 변수를 확인해주세요.\n\n필수 환경 변수:\n- R2_ACCOUNT_ID\n- R2_ACCESS_KEY_ID\n- R2_SECRET_ACCESS_KEY\n- R2_BUCKET_NAME',
         },
         { status: 500 }
       )
@@ -100,7 +35,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.log('[upload-file] 멀티파트 업로드 시작 요청:', {
+    console.log('[upload-file] Presigned URL 생성 요청:', {
       filename,
       contentType,
       fileSize,
@@ -118,116 +53,50 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // 클라이언트에서 직접 업로드하므로 서버에서 세션을 생성하지 않음
-    // 클라이언트 토큰만 생성하여 반환
+    // 고유한 파일 키 생성
+    const key = generateFileKey(filename)
 
-    // 클라이언트에서 직접 업로드할 수 있도록 클라이언트 토큰 생성
-    // 이 토큰을 사용하여 클라이언트에서 직접 Blob에 업로드 가능
-    let clientToken: string | undefined = undefined
-    
-    try {
-      if (!process.env.BLOB_READ_WRITE_TOKEN) {
-        console.error('[upload-file] BLOB_READ_WRITE_TOKEN이 설정되지 않았습니다.')
-        throw new Error('BLOB_READ_WRITE_TOKEN이 설정되지 않았습니다.')
-      }
+    // Presigned URL 생성 (1시간 유효)
+    const uploadUrl = await generateUploadUrl(
+      key,
+      contentType || 'application/octet-stream',
+      3600 // 1시간
+    )
 
-      // 클라이언트에서 파일명을 사용하므로, pathname은 파일명으로 설정
-      // 클라이언트에서 createMultipartUploader를 호출할 때 동일한 파일명을 사용해야 함
-      // validUntil: 현재 시간 + 1시간 (밀리초) - 대용량 파일 업로드에 충분한 시간 제공
-      const validUntil = new Date()
-      validUntil.setHours(validUntil.getHours() + 1) // 1시간 후 만료
-      
-      clientToken = await generateClientTokenFromReadWriteToken({
-        token: process.env.BLOB_READ_WRITE_TOKEN,
-        pathname: filename, // 클라이언트에서 사용할 파일명과 일치해야 함
-        allowedContentTypes: [contentType || 'application/octet-stream'],
-        validUntil: validUntil.getTime(), // 밀리초 단위 타임스탬프
-      })
+    // 공개 URL 생성
+    const publicUrl = getPublicUrl(key)
 
-      console.log('[upload-file] 클라이언트 토큰 생성 성공:', { 
-        hasToken: !!clientToken, 
-        tokenType: typeof clientToken,
-        tokenLength: clientToken?.length 
-      })
-    } catch (tokenError: any) {
-      console.error('[upload-file] 클라이언트 토큰 생성 실패:', tokenError)
-      // 토큰 생성 실패 시에도 업로드는 계속 진행 (서버를 통한 업로드로 폴백)
-      // 하지만 클라이언트에서 직접 업로드를 시도하면 실패할 수 있음
-    }
+    console.log('[upload-file] Presigned URL 생성 성공:', {
+      key,
+      hasUploadUrl: !!uploadUrl,
+      publicUrl,
+    })
 
     return NextResponse.json({
       success: true,
-      clientToken: clientToken || null, // 클라이언트에서 직접 업로드할 수 있는 토큰
+      uploadUrl, // 클라이언트에서 이 URL로 직접 업로드
+      key, // 파일 키
+      publicUrl, // 업로드 후 접근 가능한 공개 URL
     })
   } catch (error: any) {
-    console.error('[upload-file] 멀티파트 업로드 시작 오류:', error)
-    
+    console.error('[upload-file] Presigned URL 생성 오류:', error)
     return NextResponse.json(
       {
         success: false,
-        error: error?.message || '업로드 시작 중 오류가 발생했습니다.',
+        error: error?.message || 'Presigned URL 생성 중 오류가 발생했습니다.',
       },
       { status: 500 }
     )
   }
 }
 
-/**
- * 멀티파트 업로드 완료 API
- * 
- * PATCH /api/ai/upload-file/complete
- * Body: { uploadId: string, key: string, parts: Array<{ partNumber: number, etag: string }> }
- * 
- * Response: { url: string, pathname: string }
- */
-export async function PATCH(request: NextRequest) {
-  try {
-    console.log('[upload-file] 멀티파트 업로드 완료 요청')
-    
-    const body = await request.json()
-    const { uploadId, key, parts } = body
-
-    if (!uploadId || !key || !parts || !Array.isArray(parts)) {
-      return NextResponse.json(
-        { success: false, error: 'uploadId, key, parts가 필요합니다.' },
-        { status: 400 }
-      )
-    }
-
-    console.log('[upload-file] 완료 정보:', {
-      uploadId,
-      key,
-      partsCount: parts.length,
-    })
-
-    // 멀티파트 업로드 완료
-    // completeMultipartUpload는 (pathname, parts, options) 형태
-    // uploadId와 key는 options 안에 포함
-    const blob = await completeMultipartUpload(key, parts, {
-      uploadId,
-      key,
-      access: 'public',
-    })
-
-    console.log('[upload-file] 멀티파트 업로드 완료 성공:', {
-      url: blob.url,
-      pathname: blob.pathname,
-    })
-
-    return NextResponse.json({
-      success: true,
-      url: blob.url,
-      pathname: blob.pathname,
-    })
-  } catch (error: any) {
-    console.error('[upload-file] 멀티파트 업로드 완료 오류:', error)
-    
-    return NextResponse.json(
-      {
-        success: false,
-        error: error?.message || '업로드 완료 중 오류가 발생했습니다.',
-      },
-      { status: 500 }
-    )
-  }
+// GET 요청 처리 (405)
+export async function GET() {
+  return NextResponse.json(
+    {
+      success: false,
+      error: '이 엔드포인트는 POST 메서드만 지원합니다.',
+    },
+    { status: 405 }
+  )
 }

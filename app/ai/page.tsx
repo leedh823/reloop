@@ -8,7 +8,7 @@ import ApiHostConfig from '@/components/AI/ApiHostConfig'
 import { EMOTIONS, MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_PDF_SIZE_MB, MAX_OTHER_FILE_SIZE_MB } from '@/lib/constants'
 import { PrimaryButton } from '@/components/UI/Button'
 import { getApiUrl } from '@/lib/utils/api'
-import { createMultipartUploader, completeMultipartUpload } from '@vercel/blob/client'
+// Vercel Blob import 제거 - Cloudflare R2 사용
 
 export default function AiOnboardingAndChatPage() {
   const [file, setFile] = useState<File | null>(null)
@@ -90,16 +90,16 @@ export default function AiOnboardingAndChatPage() {
     setAnalysisResult(null)
 
     try {
-      let blobUrl: string | null = null
+      let fileUrl: string | null = null
 
-      // 파일 크기가 4MB 이상이면 멀티파트 업로드 사용
+      // 파일 크기가 4MB 이상이면 Presigned URL 방식 사용
       if (file.size > 4 * 1024 * 1024) {
-        console.log('[handleAnalyze] 파일이 4MB 이상이므로 멀티파트 업로드 사용:', { fileSize: file.size })
+        console.log('[handleAnalyze] 파일이 4MB 이상이므로 Presigned URL 업로드 사용:', { fileSize: file.size })
         
-        // 1. 멀티파트 업로드 시작
-        const uploadStartUrl = getApiUrl('/api/ai/upload-file')
-        const uploadStartResponse = await fetch(uploadStartUrl, {
-          method: 'PUT',
+        // 1. Presigned URL 요청
+        const uploadUrlRequest = getApiUrl('/api/ai/upload-file')
+        const uploadUrlResponse = await fetch(uploadUrlRequest, {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -110,76 +110,40 @@ export default function AiOnboardingAndChatPage() {
           }),
         })
 
-        if (!uploadStartResponse.ok) {
-          const errorData = await uploadStartResponse.json().catch(() => ({}))
-          throw new Error(errorData.error || '업로드 시작 실패')
+        if (!uploadUrlResponse.ok) {
+          const errorData = await uploadUrlResponse.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Presigned URL 생성 실패')
         }
 
-        const { clientToken } = await uploadStartResponse.json()
-        console.log('[handleAnalyze] 클라이언트 토큰 받음:', { hasClientToken: !!clientToken, clientTokenType: typeof clientToken })
+        const { uploadUrl, publicUrl } = await uploadUrlResponse.json()
+        console.log('[handleAnalyze] Presigned URL 받음:', { hasUploadUrl: !!uploadUrl, publicUrl })
 
-        // clientToken 검증
-        if (!clientToken || typeof clientToken !== 'string') {
-          throw new Error('클라이언트 토큰을 받지 못했습니다. 서버 설정을 확인해주세요.')
+        if (!uploadUrl) {
+          throw new Error('Presigned URL을 받지 못했습니다.')
         }
 
-        // 2. 클라이언트에서 직접 멀티파트 업로드 세션 생성 및 업로드
-        // createMultipartUploader를 사용하여 클라이언트에서 직접 세션 생성 및 업로드
-        const uploader = await createMultipartUploader(file.name, {
-          access: 'public',
-          contentType: file.type || 'application/octet-stream',
-          token: clientToken, // 서버에서 생성한 클라이언트 토큰 사용
+        // 2. Presigned URL로 직접 업로드 (서버를 거치지 않음)
+        console.log('[handleAnalyze] 파일 업로드 시작...')
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+          },
+          body: file,
         })
 
-        console.log('[handleAnalyze] 멀티파트 업로더 생성 완료:', { uploadId: uploader.uploadId, key: uploader.key })
-
-        // 파트 크기 계산 (서버와 동일한 로직)
-        const partSize = 4 * 1024 * 1024 // 4MB per part
-        const totalParts = Math.ceil(file.size / partSize)
-
-        // 파일을 청크로 나눠서 각 파트를 클라이언트에서 직접 업로드
-        const uploadedParts: Array<{ partNumber: number; etag: string }> = []
-        
-        for (let i = 0; i < totalParts; i++) {
-          const partNumber = i + 1
-          const start = i * partSize
-          // 마지막 파트는 파일 끝까지
-          const end = i === totalParts - 1 ? file.size : Math.min(start + partSize, file.size)
-          const chunk = file.slice(start, end)
-
-          console.log(`[handleAnalyze] 파트 ${partNumber} 업로드 중...`, { start, end, size: chunk.size })
-
-          // 클라이언트에서 직접 업로드 (서버를 거치지 않음)
-          const { etag } = await uploader.uploadPart(partNumber, chunk)
-          
-          uploadedParts.push({
-            partNumber,
-            etag,
-          })
-
-          console.log(`[handleAnalyze] 파트 ${partNumber} 업로드 완료`, { etag })
+        if (!uploadResponse.ok) {
+          throw new Error(`파일 업로드 실패: ${uploadResponse.status} ${uploadResponse.statusText}`)
         }
 
-        // 3. 멀티파트 업로드 완료 (클라이언트에서 직접)
-        if (!clientToken || typeof clientToken !== 'string') {
-          throw new Error('클라이언트 토큰이 유효하지 않습니다.')
-        }
-
-        const blob = await completeMultipartUpload(uploader.key, uploadedParts, {
-          token: clientToken,
-          access: 'public',
-          uploadId: uploader.uploadId,
-          key: uploader.key,
-        })
-
-        blobUrl = blob.url
-        console.log('[handleAnalyze] 멀티파트 업로드 완료:', blobUrl)
+        fileUrl = publicUrl
+        console.log('[handleAnalyze] 파일 업로드 완료:', fileUrl)
       }
 
       // 분석 API 호출
       const formData = new FormData()
-      if (blobUrl) {
-        formData.append('blobUrl', blobUrl)
+      if (fileUrl) {
+        formData.append('blobUrl', fileUrl) // R2 URL도 blobUrl 필드명 사용 (기존 코드 호환)
       } else {
         formData.append('file', file)
       }
@@ -195,7 +159,7 @@ export default function AiOnboardingAndChatPage() {
         apiUrl, 
         method: 'POST', 
         fileSize: file.size,
-        usingBlob: !!blobUrl,
+        usingBlob: !!fileUrl,
       })
       
       const response = await fetch(apiUrl, {
