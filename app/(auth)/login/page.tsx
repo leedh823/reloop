@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { PrimaryButton, SecondaryButton } from '@/components/UI/Button'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -35,10 +34,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 safe-area-top safe-area-bottom">
-      <div className="max-w-md w-full space-y-6">
-        {/* 로고 */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-6">
+      <div className="max-w-md w-full space-y-12">
+        {/* 로고 영역 - 상단 중앙 */}
+        <div className="text-center pt-8">
+          <div className="flex items-center justify-center mb-8">
             <Image
               src="/images/logo1.png"
               alt="Reloop"
@@ -60,8 +59,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* 로그인 옵션 */}
-        <div className="space-y-3">
+        {/* 로그인 버튼 영역 - 하단 고정 */}
+        <div className="space-y-3 pb-8">
           <button
             onClick={handleKakaoLogin}
             className="w-full min-h-[48px] bg-[#FEE500] text-black font-semibold rounded-lg flex items-center justify-center space-x-2 hover:bg-[#FEE500]/90 transition-colors"
@@ -70,23 +69,19 @@ export default function LoginPage() {
             <span>카카오 로그인</span>
           </button>
 
-          <PrimaryButton
+          <button
             onClick={handleGuestLogin}
-            fullWidth
-            rounded="lg"
-            className="min-h-[48px] bg-white text-black hover:bg-gray-100"
+            className="w-full min-h-[48px] bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-colors"
           >
             게스트로 시작하기
-          </PrimaryButton>
+          </button>
 
-          <SecondaryButton
+          <button
             onClick={handleGoogleLogin}
-            fullWidth
-            rounded="lg"
-            className="min-h-[48px] bg-white text-black hover:bg-gray-100 border-0"
+            className="w-full min-h-[48px] bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-colors"
           >
             구글로 시작하기
-          </SecondaryButton>
+          </button>
         </div>
       </div>
     </div>

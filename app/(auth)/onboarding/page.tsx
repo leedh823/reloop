@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { PrimaryButton } from '@/components/UI/Button'
 
 interface OnboardingStep {
@@ -65,37 +64,39 @@ export default function OnboardingPage() {
 
   return (
     <div className="h-screen w-full bg-white flex flex-col overflow-hidden safe-area-top safe-area-bottom">
-      {/* 상단: 뒤로가기 + 타이틀 */}
-      <header className="flex-shrink-0 px-4 pt-6 pb-4 border-b border-gray-200">
-        <div className="flex items-center">
-          <button
-            onClick={handleBack}
-            className="mr-4 p-2 -ml-2"
-            aria-label="뒤로가기"
-          >
-            <span className="text-2xl">←</span>
-          </button>
-          <h2 className="text-lg font-semibold text-black flex-1">
-            {currentStepData.title}
-          </h2>
-        </div>
+      {/* 상단: 뒤로가기 버튼 */}
+      <header className="flex-shrink-0 px-4 pt-6 pb-4">
+        <button
+          onClick={handleBack}
+          className="p-2 -ml-2"
+          aria-label="뒤로가기"
+        >
+          <span className="text-2xl text-black">←</span>
+        </button>
       </header>
 
-      {/* 중앙: 일러스트레이션 이미지 + 설명 */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 overflow-hidden bg-white">
-        <div className="w-full max-w-sm flex flex-col items-center justify-center space-y-8">
+      {/* 중앙: 타이틀 + 일러스트레이션 + 설명 */}
+      <main className="flex-1 flex flex-col px-4 min-h-0 overflow-y-auto">
+        <div className="w-full max-w-sm mx-auto flex flex-col space-y-8 py-8">
+          {/* 타이틀 */}
+          <div className="space-y-4">
+            <h1 className="text-xl font-bold text-black leading-tight">
+              {currentStepData.title}
+            </h1>
+          </div>
+
           {/* 이미지 영역 - 네모 박스 placeholder */}
           <div 
             key={`image-${currentStep}`}
-            className="flex items-center justify-center w-full aspect-square max-w-[320px] bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg animate-fade-in"
+            className="flex items-center justify-center w-full aspect-square max-w-[280px] mx-auto bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg animate-fade-in"
           >
             <span className="text-gray-400 text-sm">{currentStepData.imagePlaceholder}</span>
           </div>
 
-          {/* 텍스트 영역 - 이미지 아래 */}
+          {/* 설명 텍스트 */}
           <div 
             key={`text-${currentStep}`}
-            className="w-full space-y-3 text-center animate-fade-in"
+            className="w-full space-y-2 animate-fade-in"
           >
             <p className="text-base text-black leading-relaxed whitespace-pre-line">
               {currentStepData.description}
@@ -105,8 +106,8 @@ export default function OnboardingPage() {
       </main>
 
       {/* 하단: Progress Dots + CTA 버튼 */}
-      <footer className="flex-shrink-0 px-4 pb-8 safe-area-bottom">
-        <div className="space-y-4">
+      <footer className="flex-shrink-0 px-4 pb-8 pt-4 safe-area-bottom">
+        <div className="w-full max-w-sm mx-auto space-y-4">
           {/* Progress Dots */}
           <div className="flex items-center justify-center space-x-2">
             {onboardingSteps.map((_, index) => (

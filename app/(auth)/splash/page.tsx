@@ -24,7 +24,7 @@ export default function SplashPage() {
 
   return (
     <div className="h-screen w-full bg-black flex flex-col items-center justify-center safe-area-top safe-area-bottom">
-      <div className="flex flex-col items-center space-y-6 animate-fade-in">
+      <div className="flex flex-col items-center space-y-8 animate-fade-in px-4">
         {/* 로고 */}
         <div className="flex items-center justify-center">
           <Image
