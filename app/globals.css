@@ -28,52 +28,60 @@ body {
   /* 주소창 최소화 - 스크롤 시 자동으로 숨겨짐 */
   min-height: 100vh;
   min-height: -webkit-fill-available; /* iOS Safari */
-  /* 앱처럼 보이게 */
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
   /* 텍스트 선택 방지 (선택적) */
   -webkit-tap-highlight-color: transparent;
-  /* 웹에서 앱 화면 중앙 정렬 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin: 0;
+  padding: 0;
 }
 
-/* 앱 컨테이너 - 모바일에서는 전체 화면 */
-#__next,
-[data-nextjs-scroll-focus-boundary] {
-  height: 100%;
-  overflow: hidden;
-  width: 100%;
-  margin: 0 auto;
-  background: #FFFFFF;
-  position: relative;
-}
-
-/* 모바일에서는 전체 화면 */
+/* 모바일: 전체 화면 */
 @media (max-width: 767px) {
+  body {
+    /* 모바일에서는 전체 화면 */
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
   #__next,
   [data-nextjs-scroll-focus-boundary] {
-    max-width: 100%;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    background: #FFFFFF;
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: none;
     border-radius: 0;
     box-shadow: none;
-    border: none;
   }
 }
 
-/* 데스크탑에서 핸드폰 비율에 맞게 */
+/* 데스크탑: 핸드폰 비율에 맞게 */
 @media (min-width: 768px) {
+  body {
+    /* 데스크탑에서 앱 화면 중앙 정렬 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
   #__next,
   [data-nextjs-scroll-focus-boundary] {
-    /* 핸드폰 비율: 9:19.5 (iPhone 14 Pro Max 기준) */
+    /* 핸드폰 비율: 428px x 926px (iPhone 14 Pro Max 기준) */
     width: 428px;
     height: 926px;
     max-width: 428px;
     max-height: 926px;
-    /* 화면 중앙 정렬 */
-    margin: 20px auto;
+    margin: 0 auto;
+    background: #FFFFFF;
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
     /* 앱 테두리 */
     border: 8px solid #000000;
     border-radius: 24px;
