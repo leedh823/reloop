@@ -138,6 +138,7 @@ export function getFailures(): Failure[] {
         failures = JSON.parse(data)
       } catch (e) {
         console.warn('[storage] 데이터 파싱 오류, 초기화합니다.')
+        failures = []
       }
     }
     
@@ -145,36 +146,39 @@ export function getFailures(): Failure[] {
     const dummyData = failures.filter(f => f.id.startsWith('failure_dummy_'))
     const userData = failures.filter(f => !f.id.startsWith('failure_dummy_'))
     
-    // 더미 데이터가 5개 미만이면 추가
-    if (dummyData.length < 5) {
-      const newDummyData = initializeDummyData()
-      // 기존 더미 데이터 ID와 중복되지 않는 것만 추가
-      const existingDummyIds = new Set(dummyData.map(d => d.id))
-      const additionalDummy = newDummyData.filter(d => !existingDummyIds.has(d.id))
-      
-      // 최소 5개가 되도록 추가
-      const needed = 5 - dummyData.length
-      const toAdd = additionalDummy.slice(0, needed)
-      
-      if (toAdd.length > 0) {
-        const allFailures = [...userData, ...dummyData, ...toAdd]
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(allFailures))
-        return allFailures.sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )
-      }
-    }
+    // 더미 데이터가 정확히 5개가 되도록 보장
+    const requiredDummyIds = ['failure_dummy_1', 'failure_dummy_2', 'failure_dummy_3', 'failure_dummy_4', 'failure_dummy_5']
+    const existingDummyIds = new Set(dummyData.map(d => d.id))
+    const missingDummyIds = requiredDummyIds.filter(id => !existingDummyIds.has(id))
     
-    // 더미 데이터가 없으면 전체 초기화
-    if (dummyData.length === 0) {
-      const newDummyData = initializeDummyData()
-      const allFailures = [...userData, ...newDummyData]
+    // 필요한 더미 데이터 생성
+    const newDummyData = initializeDummyData()
+    const dummyMap = new Map(newDummyData.map(d => [d.id, d]))
+    const missingDummies = missingDummyIds.map(id => dummyMap.get(id)).filter(Boolean) as Failure[]
+    
+    // 더미 데이터가 부족하면 추가
+    if (missingDummies.length > 0 || dummyData.length < 5) {
+      // 기존 더미 데이터와 새 더미 데이터 합치기 (중복 제거)
+      const allDummyIds = new Set([...dummyData.map(d => d.id), ...missingDummies.map(d => d.id)])
+      const finalDummyData = [
+        ...dummyData.filter(d => allDummyIds.has(d.id)),
+        ...missingDummies.filter(d => !existingDummyIds.has(d.id))
+      ]
+      
+      // 정확히 5개만 유지 (필수 ID 우선)
+      const finalDummies = requiredDummyIds
+        .map(id => finalDummyData.find(d => d.id === id))
+        .filter(Boolean) as Failure[]
+      
+      const allFailures = [...userData, ...finalDummies]
       localStorage.setItem(STORAGE_KEY, JSON.stringify(allFailures))
+      
       return allFailures.sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
     }
     
+    // 더미 데이터가 이미 5개 이상이면 그대로 반환
     return failures.sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )

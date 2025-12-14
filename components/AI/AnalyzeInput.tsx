@@ -4,14 +4,14 @@ import { useRef, useState } from 'react'
 import { CATEGORIES } from '@/lib/constants/categories'
 import { EMOTIONS } from '@/lib/constants/emotions'
 
-interface AnalyzeInputProps {
+export interface AnalyzeInputProps {
   inputText: string
   onInputChange: (text: string) => void
   selectedCategory?: string
   onCategoryChange: (category: string) => void
   selectedEmotion?: string
   onEmotionChange: (emotion: string) => void
-}
+  onFileUploaded?: (text: string) => void}
 
 export default function AnalyzeInput({
   inputText,

@@ -12,7 +12,6 @@ import ConfirmModal from '@/components/UI/ConfirmModal'
 import { getCategoryLabel } from '@/lib/constants/categories'
 import { getEmotionLabel } from '@/lib/constants/emotions'
 import { PrimaryButton } from '@/components/UI/Button'
-import Image from 'next/image'
 
 export const dynamic = 'force-dynamic'
 
