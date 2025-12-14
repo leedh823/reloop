@@ -8,6 +8,17 @@
   --reloop-silver: #ACACAC;
 }
 
+html {
+  /* iOS Safari 주소창 최소화 */
+  height: 100%;
+  height: -webkit-fill-available;
+  overflow: hidden;
+  /* 앱처럼 보이게 */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
 body {
   color: #F5F5F5;
   background: #000000;
@@ -17,11 +28,20 @@ body {
   /* 주소창 최소화 - 스크롤 시 자동으로 숨겨짐 */
   min-height: 100vh;
   min-height: -webkit-fill-available; /* iOS Safari */
+  /* 앱처럼 보이게 */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* 텍스트 선택 방지 (선택적) */
+  -webkit-tap-highlight-color: transparent;
 }
 
-html {
-  /* iOS Safari 주소창 최소화 */
-  height: -webkit-fill-available;
+/* 앱 컨테이너 */
+#__next,
+[data-nextjs-scroll-focus-boundary] {
+  height: 100%;
+  overflow: hidden;
 }
 
 /* iOS Safe Area 대응 */
