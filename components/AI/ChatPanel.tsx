@@ -42,8 +42,12 @@ export default function ChatPanel({
         }
         setMessages([welcomeMessage])
       }
+    } else {
+      // 패널이 닫히면 메시지 초기화
+      setMessages([])
+      setInputMessage('')
     }
-  }, [isOpen, messages.length])
+  }, [isOpen])
 
   useEffect(() => {
     scrollToBottom()
@@ -141,16 +145,16 @@ export default function ChatPanel({
       />
 
       {/* 사이드 패널 */}
-      <div className={`fixed right-0 top-0 h-full w-full md:w-[420px] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-out ${
+      <div className={`fixed right-0 top-0 h-full w-full md:w-[420px] bg-black shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-out ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         {/* 헤더 */}
-        <div className="bg-gradient-to-r from-reloop-blue to-blue-500 text-white p-6">
+        <div className="bg-[#1a1a1a] border-b border-[#2A2A2A] p-4 safe-area-top">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-bold">감정 리루프 AI</h2>
+            <h2 className="text-lg font-semibold text-white">감정 리루프 AI</h2>
             <button
               onClick={onClose}
-              className="text-white/80 hover:text-white transition-colors"
+              className="text-[#B3B3B3] hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="닫기"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,16 +162,16 @@ export default function ChatPanel({
               </svg>
             </button>
           </div>
-          <p className="text-sm text-white/90 mb-2">
+          <p className="text-sm text-[#B3B3B3] mb-1">
             지금 느끼는 감정을 정리해보고, 실패 속에서 무엇을 배울 수 있을지 같이 생각해봐요.
           </p>
-          <p className="text-xs text-white/70">
+          <p className="text-xs text-[#777777]">
             전문 상담이 아니며, 심각한 위기 상황에서는 전문가에게 도움을 요청해야 합니다.
           </p>
         </div>
 
         {/* 메시지 영역 */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -177,13 +181,13 @@ export default function ChatPanel({
                 className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                   message.role === 'user'
                     ? 'bg-reloop-blue text-white'
-                    : 'bg-gray-200 text-gray-800'
+                    : 'bg-[#1a1a1a] border border-[#2A2A2A] text-[#B3B3B3]'
                 }`}
               >
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
                   {message.content}
                 </p>
-                <p className="text-xs mt-1 opacity-70">
+                <p className={`text-xs mt-1 ${message.role === 'user' ? 'opacity-70' : 'text-[#777777]'}`}>
                   {formatTime(message.createdAt)}
                 </p>
               </div>
@@ -193,11 +197,11 @@ export default function ChatPanel({
           {/* 로딩 버블 */}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-gray-200 text-gray-800 rounded-2xl px-4 py-3">
+              <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-2xl px-4 py-3">
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span className="w-2 h-2 bg-[#777777] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-[#777777] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-[#777777] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </div>
@@ -207,7 +211,7 @@ export default function ChatPanel({
         </div>
 
         {/* 입력 영역 */}
-        <div className="border-t border-gray-200 p-4 bg-white">
+        <div className="border-t border-[#2A2A2A] p-4 bg-black safe-area-bottom">
           <div className="flex gap-2">
             <textarea
               ref={textareaRef}
@@ -215,14 +219,14 @@ export default function ChatPanel({
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent"
+              className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent text-white placeholder:text-[#777777]"
               rows={2}
               disabled={isLoading}
             />
             <button
               onClick={handleSend}
               disabled={!inputMessage.trim() || isLoading}
-              className="bg-reloop-blue text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="bg-reloop-blue text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[48px]"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

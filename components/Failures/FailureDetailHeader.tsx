@@ -29,16 +29,34 @@ export default function FailureDetailHeader({ onEdit, onDelete, onComment, isAut
           </svg>
         </button>
 
-        {/* 메뉴 버튼 */}
-        <button
-          onClick={() => setIsMenuOpen(true)}
-          className="p-2 min-h-[44px] min-w-[44px] text-white"
-          aria-label="메뉴"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-          </svg>
-        </button>
+        {/* 오른쪽 버튼들 */}
+        <div className="flex items-center gap-2">
+          {/* 댓글 버튼 */}
+          {onComment && (
+            <button
+              onClick={() => {
+                onComment()
+              }}
+              className="p-2 min-h-[44px] min-w-[44px] text-white"
+              aria-label="댓글"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </button>
+          )}
+
+          {/* 메뉴 버튼 */}
+          <button
+            onClick={() => setIsMenuOpen(true)}
+            className="p-2 min-h-[44px] min-w-[44px] text-white"
+            aria-label="메뉴"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* 메뉴 바텀시트 */}

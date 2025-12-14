@@ -67,7 +67,7 @@ export default function AppShell({ children, title, rightAction }: AppShellProps
       </header>
 
       {/* Content Area */}
-      <main className="flex-1 overflow-y-auto pb-20 safe-area-bottom min-h-0">
+      <main className="flex-1 overflow-y-auto pb-24 safe-area-bottom min-h-0">
         <div className="w-full max-w-full overflow-x-hidden">
           {children}
         </div>

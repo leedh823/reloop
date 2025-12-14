@@ -40,10 +40,10 @@ export async function getRecentFeed(): Promise<FeedItem[]> {
   return failures
     .map((failure) => ({
       ...failure,
-      authorName: profile?.name || 'Anonymous',
-      avatarId: profile?.avatarId,
+      authorName: failure.authorName || 'Anonymous',
+      avatarId: failure.avatarId,
       likesCount: Math.floor(Math.random() * 50), // Mock
-      commentsCount: Math.floor(Math.random() * 10), // Mock
+      commentsCount: (failure.comments?.length || 0) + Math.floor(Math.random() * 5), // 실제 댓글 수 + Mock
     }))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
@@ -58,10 +58,10 @@ export async function getTrendingFeed(): Promise<FeedItem[]> {
   return failures
     .map((failure) => ({
       ...failure,
-      authorName: profile?.name || 'Anonymous',
-      avatarId: profile?.avatarId,
+      authorName: failure.authorName || 'Anonymous',
+      avatarId: failure.avatarId,
       likesCount: Math.floor(Math.random() * 100) + 10, // Mock (10~110)
-      commentsCount: Math.floor(Math.random() * 20), // Mock
+      commentsCount: (failure.comments?.length || 0) + Math.floor(Math.random() * 10), // 실제 댓글 수 + Mock
     }))
     .sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0))
 }
@@ -82,10 +82,10 @@ export async function getForYouFeed(): Promise<FeedItem[]> {
     }
     byCategory[category].push({
       ...failure,
-      authorName: profile?.name || 'Anonymous',
-      avatarId: profile?.avatarId,
+      authorName: failure.authorName || 'Anonymous',
+      avatarId: failure.avatarId,
       likesCount: Math.floor(Math.random() * 80), // Mock
-      commentsCount: Math.floor(Math.random() * 15), // Mock
+      commentsCount: (failure.comments?.length || 0) + Math.floor(Math.random() * 8), // 실제 댓글 수 + Mock
     })
   })
 

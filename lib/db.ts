@@ -8,19 +8,22 @@ import { Failure } from '@/types/failure';
  */
 let failures: Failure[] = [];
 
-// 더미 계정 정보 (5개 고정)
+// 더미 계정 정보 (5개 고정 - 모르는 사람들)
 const dummyUsers = [
-  { id: 'dummy_user_1', name: '민수', avatarId: '프로필 1.png' },
-  { id: 'dummy_user_2', name: '지영', avatarId: '프로필 2.png' },
-  { id: 'dummy_user_3', name: '현우', avatarId: '프로필3.png' },
-  { id: 'dummy_user_4', name: '수진', avatarId: '프로필 4.png' },
-  { id: 'dummy_user_5', name: '준호', avatarId: '프로필 5.png' },
+  { id: 'dummy_user_1', name: '김민준', avatarId: '프로필 1.png' },
+  { id: 'dummy_user_2', name: '이서연', avatarId: '프로필 2.png' },
+  { id: 'dummy_user_3', name: '박도현', avatarId: '프로필3.png' },
+  { id: 'dummy_user_4', name: '최예은', avatarId: '프로필 4.png' },
+  { id: 'dummy_user_5', name: '정하준', avatarId: '프로필 5.png' },
 ]
 
-// 더미 이미지 URL (더미1.png~더미6.png 사용)
+// 더미 이미지 URL (실제 파일명 사용 - 공백 포함)
 const getDummyImageUrl = (index: number) => {
-  const imageNames = ['더미1.png', '더미2.png', '더미3.png', '더미4.png', '더미5.png', '더미6.png']
-  return `/images/${imageNames[index] || '더미1.png'}`
+  // 실제 파일명 확인: 더미1.png, 더미 2.png, 더미3.png, 더미 4.png, 더미 5.png
+  const imageNames = ['더미1.png', '더미 2.png', '더미3.png', '더미 4.png', '더미 5.png']
+  const imageName = imageNames[index] || '더미1.png'
+  // 공백을 그대로 사용 (Next.js가 자동으로 처리)
+  return `/images/${imageName}`
 }
 
 // 더미 데이터 초기화 (서버 시작 시)
@@ -37,7 +40,7 @@ function initializeDummyData() {
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
         aiStatus: 'none',
         authorId: 'dummy_user_1',
-        authorName: '민수',
+        authorName: '김민준',
         avatarId: '프로필 1.png',
         images: [
           {
@@ -57,7 +60,7 @@ function initializeDummyData() {
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
         aiStatus: 'none',
         authorId: 'dummy_user_2',
-        authorName: '지영',
+        authorName: '이서연',
         avatarId: '프로필 2.png',
         images: [
           {
@@ -77,8 +80,8 @@ function initializeDummyData() {
         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         aiStatus: 'none',
         authorId: 'dummy_user_3',
-        authorName: '현우',
-        avatarId: '프로필 3.png',
+        authorName: '박도현',
+        avatarId: '프로필3.png',
         images: [
           {
             url: getDummyImageUrl(2),
@@ -97,7 +100,7 @@ function initializeDummyData() {
         createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
         aiStatus: 'none',
         authorId: 'dummy_user_4',
-        authorName: '수진',
+        authorName: '최예은',
         avatarId: '프로필 4.png',
         images: [
           {
@@ -117,7 +120,7 @@ function initializeDummyData() {
         createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
         aiStatus: 'none',
         authorId: 'dummy_user_5',
-        authorName: '준호',
+        authorName: '정하준',
         avatarId: '프로필 5.png',
         images: [
           {

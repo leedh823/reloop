@@ -9,6 +9,7 @@ import { generateMockAnalyzeResult, MockAnalyzeResult } from '@/lib/ai/mockAnaly
 import AnalyzeInput from '@/components/AI/AnalyzeInput'
 import AnalyzeProgress from '@/components/AI/AnalyzeProgress'
 import AnalyzeResultView from '@/components/AI/AnalyzeResultView'
+import ChatPanel from '@/components/AI/ChatPanel'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +29,8 @@ function AIPageContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasFileUploaded, setHasFileUploaded] = useState(false)
+  const [isChatPanelOpen, setIsChatPanelOpen] = useState(false)
+  const [inputMode, setInputMode] = useState<'text' | 'file'>('text')
 
   // failureId가 있으면 해당 failure 로드 (API에서 가져오기)
   useEffect(() => {
@@ -49,9 +52,9 @@ function AIPageContent() {
           ].filter(Boolean).join('\n\n')
           setInputText(combinedText)
           // 텍스트가 있으면 분석 가능하도록 설정
-          if (combinedText.trim()) {
-            setHasFileUploaded(false) // 텍스트 입력이므로 파일 업로드 플래그는 false
-          }
+          // inputText가 있으면 버튼이 활성화되므로 hasFileUploaded는 false여도 됨
+          // 하지만 명시적으로 false로 설정하여 버튼 활성화 보장
+          setHasFileUploaded(false)
           if (loadedFailure.category) {
             setSelectedCategory(loadedFailure.category)
           }
@@ -78,7 +81,13 @@ function AIPageContent() {
       return
     }
 
-    // 파일이 업로드되었지만 텍스트가 없는 경우
+    // 텍스트 입력 모드인 경우: 바로 대화 페이지로 이동
+    if (inputMode === 'text' && !hasFileUploaded) {
+      setIsChatPanelOpen(true)
+      return
+    }
+
+    // 파일 업로드 모드인 경우: 분석 후 대화 페이지로 이동
     const textToAnalyze = inputText.trim() || '파일이 업로드되었습니다. 파일 내용을 분석합니다.'
 
     setState('analyzing')
@@ -87,7 +96,9 @@ function AIPageContent() {
     setTimeout(() => {
       const result = generateMockAnalyzeResult(textToAnalyze)
       setAnalyzeResult(result)
-      setState('result')
+      // 분석 완료 후 대화 페이지로 이동
+      setState('input') // 결과 화면 대신 대화 페이지로
+      setIsChatPanelOpen(true)
     }, 1500)
   }
 
@@ -195,6 +206,13 @@ function AIPageContent() {
               onFileUploaded={(text) => {
                 setInputText(text)
                 setHasFileUploaded(true)
+                setInputMode('file') // 파일 업로드 모드로 설정
+              }}
+              onInputModeChange={(mode) => {
+                setInputMode(mode)
+                if (mode === 'text') {
+                  setHasFileUploaded(false) // 텍스트 모드로 전환 시 파일 업로드 플래그 초기화
+                }
               }}
             />
 
@@ -203,11 +221,11 @@ function AIPageContent() {
                 onClick={handleAnalyze}
                 fullWidth
                 className="min-h-[48px]"
-                disabled={!inputText.trim() && !hasFileUploaded}
+                disabled={inputText.trim().length === 0 && !hasFileUploaded}
               >
-                AI에게 분석 요청하기
+                {hasFileUploaded ? 'AI에게 분석 요청하기' : 'AI와 대화하기'}
               </PrimaryButton>
-              {!inputText.trim() && !hasFileUploaded && (
+              {inputText.trim().length === 0 && !hasFileUploaded && (
                 <p className="text-xs text-[#777777] mt-2 text-center">
                   분석할 내용을 입력해주세요
                 </p>
@@ -229,6 +247,14 @@ function AIPageContent() {
           />
         )}
       </div>
+
+      {/* 채팅 패널 */}
+      <ChatPanel
+        isOpen={isChatPanelOpen}
+        onClose={() => setIsChatPanelOpen(false)}
+        failureSummary={inputText.trim() || failure?.summary}
+        emotionTag={selectedEmotion || failure?.emotion}
+      />
     </AppShell>
   )
 }
