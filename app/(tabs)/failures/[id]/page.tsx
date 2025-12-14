@@ -66,10 +66,30 @@ export default function FailureDetailPage() {
     if (!failure) return
 
     try {
-      const updated = updateFailure(id, {
-        fileUrl,
+      // 기존 이미지 배열에 추가
+      const existingImages = failure.images || []
+      // 하위 호환성: fileUrl이 있으면 images 배열에 추가
+      if (failure.fileUrl && !existingImages.some(img => img.url === failure.fileUrl)) {
+        existingImages.push({
+          url: failure.fileUrl,
+          fileName: failure.fileName || '이미지',
+          fileType: failure.fileType || 'image/jpeg',
+        })
+      }
+      
+      // 새 이미지 추가
+      existingImages.push({
+        url: fileUrl,
         fileName,
         fileType,
+      })
+
+      const updated = updateFailure(id, {
+        images: existingImages,
+        // 하위 호환성을 위해 fileUrl도 유지 (첫 번째 이미지)
+        fileUrl: existingImages[0]?.url,
+        fileName: existingImages[0]?.fileName,
+        fileType: existingImages[0]?.fileType,
       })
 
       if (updated) {
@@ -178,81 +198,83 @@ export default function FailureDetailPage() {
           )}
 
                {/* 파일 업로드 섹션 */}
-               {!failure.fileUrl && (
-                 <FileUploadSection
-                   onUploadSuccess={handleFileUploadSuccess}
-                   onUploadError={handleFileUploadError}
-                 />
-               )}
+               <FileUploadSection
+                 onUploadSuccess={handleFileUploadSuccess}
+                 onUploadError={handleFileUploadError}
+               />
 
-               {/* 파일 미리보기 */}
-               {failure.fileUrl && (
-                 <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-4">
-                   <div className="flex items-center justify-between mb-3">
-                     <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                       <span>📷</span>
-                       {failure.fileName || '업로드된 이미지'}
-                     </h3>
-                     <button
-                       onClick={() => {
-                         try {
-                           const updated = updateFailure(id, {
-                             fileUrl: undefined,
-                             fileName: undefined,
-                             fileType: undefined,
-                           })
-                           if (updated) {
-                             setFailure(updated)
-                           }
-                         } catch (error) {
-                           console.error('[failure-detail] 파일 삭제 오류:', error)
-                         }
-                       }}
-                       className="text-red-400 text-sm min-h-[32px] px-2"
-                     >
-                       삭제
-                     </button>
-                   </div>
-                   <div className="w-full">
-                     {failure.fileType?.startsWith('image/') ? (
-                       <img
-                         src={failure.fileUrl}
-                         alt={failure.fileName || '이미지'}
-                         className="w-full h-auto rounded max-h-[600px] object-contain"
-                         onError={(e) => {
-                           const target = e.target as HTMLImageElement
-                           target.style.display = 'none'
-                           const parent = target.parentElement
-                           if (parent) {
-                             parent.innerHTML = `
-                               <div class="bg-[#2A2A2A] rounded p-6 text-center">
-                                 <div class="text-6xl mb-4">🖼️</div>
-                                 <p class="text-white text-sm mb-4">${failure.fileName || '이미지'}</p>
-                                 <a href="${failure.fileUrl}" target="_blank" rel="noopener noreferrer" class="inline-block px-6 py-3 bg-reloop-blue text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors min-h-[48px]">
-                                   이미지 보기
-                                 </a>
-                               </div>
-                             `
-                           }
-                         }}
-                       />
-                     ) : (
-                       <div className="bg-[#2A2A2A] rounded p-6 text-center space-y-4">
-                         <div className="text-6xl mb-4">📎</div>
-                         <p className="text-white text-sm mb-4">{failure.fileName || '파일'}</p>
-                         <a
-                           href={failure.fileUrl}
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           className="inline-block px-6 py-3 bg-reloop-blue text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors min-h-[48px]"
+               {/* 이미지 미리보기 */}
+               {(failure.images && failure.images.length > 0) || failure.fileUrl ? (
+                 <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-4 space-y-4">
+                   <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                     <span>📷</span>
+                     업로드된 이미지 {failure.images ? `(${failure.images.length})` : ''}
+                   </h3>
+                   <div className="space-y-4">
+                     {/* 여러 이미지 표시 */}
+                     {failure.images && failure.images.length > 0 ? (
+                       failure.images.map((image, index) => (
+                         <div key={index} className="relative">
+                           <img
+                             src={image.url}
+                             alt={image.fileName || `이미지 ${index + 1}`}
+                             className="w-full h-auto rounded max-h-[600px] object-contain"
+                           />
+                           <button
+                             onClick={() => {
+                               try {
+                                 const updatedImages = failure.images?.filter((_, i) => i !== index) || []
+                                 const updated = updateFailure(id, {
+                                   images: updatedImages.length > 0 ? updatedImages : undefined,
+                                   fileUrl: updatedImages.length > 0 ? updatedImages[0]?.url : undefined,
+                                   fileName: updatedImages.length > 0 ? updatedImages[0]?.fileName : undefined,
+                                   fileType: updatedImages.length > 0 ? updatedImages[0]?.fileType : undefined,
+                                 })
+                                 if (updated) {
+                                   setFailure(updated)
+                                 }
+                               } catch (error) {
+                                 console.error('[failure-detail] 이미지 삭제 오류:', error)
+                               }
+                             }}
+                             className="absolute top-2 right-2 bg-black/50 text-red-400 text-xs px-2 py-1 rounded min-h-[32px]"
+                           >
+                             삭제
+                           </button>
+                         </div>
+                       ))
+                     ) : failure.fileUrl ? (
+                       // 하위 호환성: 단일 이미지
+                       <div className="relative">
+                         <img
+                           src={failure.fileUrl}
+                           alt={failure.fileName || '이미지'}
+                           className="w-full h-auto rounded max-h-[600px] object-contain"
+                         />
+                         <button
+                           onClick={() => {
+                             try {
+                               const updated = updateFailure(id, {
+                                 fileUrl: undefined,
+                                 fileName: undefined,
+                                 fileType: undefined,
+                               })
+                               if (updated) {
+                                 setFailure(updated)
+                               }
+                             } catch (error) {
+                               console.error('[failure-detail] 이미지 삭제 오류:', error)
+                             }
+                           }}
+                           className="absolute top-2 right-2 bg-black/50 text-red-400 text-xs px-2 py-1 rounded min-h-[32px]"
                          >
-                           파일 다운로드
-                         </a>
+                           삭제
+                         </button>
                        </div>
-                     )}
+                     ) : null}
                    </div>
                  </div>
-               )}
+               ) : null}
 
           {/* AI 분석 섹션 */}
           <AISummarySection failure={failure} />
