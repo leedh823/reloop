@@ -75,12 +75,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 파일 타입 검증
-    const fileExtension = file.name.split('.').pop()?.toLowerCase()
+    const fileExtension = fileName.split('.').pop()?.toLowerCase()
     const allowedTypes = ['application/pdf', 'text/plain']
     const allowedExtensions = ['pdf', 'txt']
 
     if (
-      !allowedTypes.includes(file.type) &&
+      !allowedTypes.includes(contentType) &&
       !allowedExtensions.includes(fileExtension || '')
     ) {
       return NextResponse.json(
@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[files/parse] 파일 파싱 시작:', {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
+      fileName,
+      fileSize,
+      fileType: contentType,
     })
 
     let extractedText = ''
