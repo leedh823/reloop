@@ -217,13 +217,69 @@ export async function POST(request: NextRequest) {
           
           // PDF 문서 로드
           const pdf = await getDocumentProxy(uint8Array)
+          const numPages = pdf.numPages || 0
           
-          // 텍스트 추출 (모든 페이지 병합)
-          const { totalPages, text } = await extractText(pdf, { mergePages: true })
+          console.log('[analyze-file] PDF 문서 로드 완료:', { numPages })
+          
+          // extractText를 먼저 시도
+          let fullText = ''
+          try {
+            const extractResult = await extractText(pdf, { 
+              mergePages: true,
+              // 모든 옵션 시도
+            })
+            fullText = extractResult.text || ''
+            console.log('[analyze-file] extractText 결과:', { 
+              textLength: fullText.length,
+              totalPages: extractResult.totalPages 
+            })
+          } catch (extractError: any) {
+            console.warn('[analyze-file] extractText 실패, 페이지별 추출 시도:', extractError)
+          }
+          
+          // extractText가 실패하거나 빈 텍스트면 페이지별로 추출 시도
+          if (!fullText || fullText.trim().length === 0) {
+            console.log('[analyze-file] 페이지별 텍스트 추출 시작...')
+            fullText = ''
+            
+            for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+              try {
+                const page = await pdf.getPage(pageNum)
+                const textContent = await page.getTextContent()
+                
+                // 텍스트 아이템들을 합치기
+                const pageText = textContent.items
+                  .map((item: any) => {
+                    // item.str이 있으면 사용, 없으면 item.text 사용
+                    return item.str || item.text || ''
+                  })
+                  .filter((text: string) => text && text.trim().length > 0)
+                  .join(' ')
+                
+                if (pageText) {
+                  fullText += pageText + '\n'
+                }
+                
+                if (pageNum % 5 === 0 || pageNum === numPages) {
+                  console.log(`[analyze-file] 페이지 ${pageNum}/${numPages} 텍스트 추출 진행:`, { 
+                    currentTextLength: fullText.length 
+                  })
+                }
+              } catch (pageError: any) {
+                console.warn(`[analyze-file] 페이지 ${pageNum} 텍스트 추출 실패:`, pageError)
+                // 페이지 추출 실패해도 계속 진행
+              }
+            }
+          }
+          
+          console.log('[analyze-file] 전체 텍스트 추출 완료:', { 
+            totalPages: numPages,
+            totalTextLength: fullText.length 
+          })
           
           return {
-            text: text || '',
-            numpages: totalPages || 0,
+            text: fullText.trim(),
+            numpages: numPages,
             info: {},
             metadata: {},
           }
