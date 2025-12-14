@@ -77,17 +77,25 @@ export default function ImagePicker({ images, onImagesChange, maxImages = 10 }: 
       {images.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
           {images.map((image, index) => (
-            <div key={index} className="relative aspect-square group">
-              <Image
-                src={image.url}
-                alt={`이미지 ${index + 1}`}
-                fill
-                className="object-cover rounded-lg"
-                unoptimized
-              />
+            <div key={index} className="relative aspect-square group rounded-lg overflow-hidden bg-[#1a1a1a]">
+              {image.url.startsWith('blob:') || image.url.startsWith('http') ? (
+                <img
+                  src={image.url}
+                  alt={`이미지 ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Image
+                  src={image.url}
+                  alt={`이미지 ${index + 1}`}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              )}
               <button
                 onClick={() => handleRemoveImage(index)}
-                className="absolute top-1 right-1 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
                 aria-label="이미지 삭제"
               >
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

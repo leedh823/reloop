@@ -27,6 +27,7 @@ function AIPageContent() {
   const [failure, setFailure] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hasFileUploaded, setHasFileUploaded] = useState(false)
 
   // failureId가 있으면 해당 failure 로드
   useEffect(() => {
@@ -60,16 +61,20 @@ function AIPageContent() {
   }, [failureId])
 
   const handleAnalyze = async () => {
-    if (!inputText.trim()) {
-      alert('분석할 내용을 입력해주세요.')
+    // 텍스트 입력 또는 파일 업로드 확인
+    if (!inputText.trim() && !hasFileUploaded) {
+      alert('분석할 내용을 입력하거나 파일을 업로드해주세요.')
       return
     }
+
+    // 파일이 업로드되었지만 텍스트가 없는 경우
+    const textToAnalyze = inputText.trim() || '파일이 업로드되었습니다. 파일 내용을 분석합니다.'
 
     setState('analyzing')
 
     // 1~2초 후 mock 결과 생성
     setTimeout(() => {
-      const result = generateMockAnalyzeResult(inputText)
+      const result = generateMockAnalyzeResult(textToAnalyze)
       setAnalyzeResult(result)
       setState('result')
     }, 1500)
@@ -162,6 +167,10 @@ function AIPageContent() {
               onCategoryChange={setSelectedCategory}
               selectedEmotion={selectedEmotion}
               onEmotionChange={setSelectedEmotion}
+              onFileUploaded={(text) => {
+                setInputText(text)
+                setHasFileUploaded(true)
+              }}
             />
 
             <div className="pt-4">
@@ -169,11 +178,11 @@ function AIPageContent() {
                 onClick={handleAnalyze}
                 fullWidth
                 className="min-h-[48px]"
-                disabled={!inputText.trim()}
+                disabled={!inputText.trim() && !hasFileUploaded}
               >
                 AI에게 분석 요청하기
               </PrimaryButton>
-              {!inputText.trim() && (
+              {!inputText.trim() && !hasFileUploaded && (
                 <p className="text-xs text-[#777777] mt-2 text-center">
                   분석할 내용을 입력해주세요
                 </p>

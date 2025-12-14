@@ -29,7 +29,17 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 스크롤바 숨김 */
+/* 스크롤바 숨김 - 전역 적용 */
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* 스크롤바 숨김 클래스 (필요시 개별 적용) */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
