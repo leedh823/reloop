@@ -24,6 +24,7 @@ export default function FailureDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isCommentDrawerOpen, setIsCommentDrawerOpen] = useState(false)
+  const [isAuthor, setIsAuthor] = useState(false)
 
   useEffect(() => {
     const loadFailure = async () => {
@@ -32,6 +33,13 @@ export default function FailureDetailPage() {
         if (response.ok) {
           const data = await response.json()
           setFailure(data)
+          
+          // 작성자 확인
+          if (typeof window !== 'undefined') {
+            const guestId = localStorage.getItem('guestId')
+            const isMyPost = data.authorId === guestId
+            setIsAuthor(isMyPost)
+          }
         } else {
           setFailure(null)
         }
@@ -209,6 +217,7 @@ export default function FailureDetailPage() {
         onEdit={handleEdit} 
         onDelete={handleDelete}
         onComment={() => setIsCommentDrawerOpen(true)}
+        isAuthor={isAuthor}
       />
 
       {/* 컨텐츠 영역 */}
@@ -235,34 +244,36 @@ export default function FailureDetailPage() {
                         target.parentElement?.appendChild(placeholder)
                       }}
                     />
-                    <button
-                      onClick={async () => {
-                        try {
-                          const updatedImages = failure.images?.filter((_, i) => i !== index) || []
-                          const response = await fetch(`/api/failures/${id}`, {
-                            method: 'PUT',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              images: updatedImages.length > 0 ? updatedImages : undefined,
-                              fileUrl: updatedImages.length > 0 ? updatedImages[0]?.url : undefined,
-                              fileName: updatedImages.length > 0 ? updatedImages[0]?.fileName : undefined,
-                              fileType: updatedImages.length > 0 ? updatedImages[0]?.fileType : undefined,
-                            }),
-                          })
-                          if (response.ok) {
-                            const updated = await response.json()
-                            setFailure(updated)
+                    {isAuthor && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const updatedImages = failure.images?.filter((_, i) => i !== index) || []
+                            const response = await fetch(`/api/failures/${id}`, {
+                              method: 'PUT',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                images: updatedImages.length > 0 ? updatedImages : undefined,
+                                fileUrl: updatedImages.length > 0 ? updatedImages[0]?.url : undefined,
+                                fileName: updatedImages.length > 0 ? updatedImages[0]?.fileName : undefined,
+                                fileType: updatedImages.length > 0 ? updatedImages[0]?.fileType : undefined,
+                              }),
+                            })
+                            if (response.ok) {
+                              const updated = await response.json()
+                              setFailure(updated)
+                            }
+                          } catch (error) {
+                            console.error('[failure-detail] 이미지 삭제 오류:', error)
                           }
-                        } catch (error) {
-                          console.error('[failure-detail] 이미지 삭제 오류:', error)
-                        }
-                      }}
-                      className="absolute top-4 right-4 bg-black/70 text-red-400 text-sm px-3 py-2 rounded min-h-[44px] backdrop-blur-sm"
-                    >
-                      삭제
-                    </button>
+                        }}
+                        className="absolute top-4 right-4 bg-black/70 text-red-400 text-sm px-3 py-2 rounded min-h-[44px] backdrop-blur-sm"
+                      >
+                        삭제
+                      </button>
+                    )}
                   </div>
                 ))
               ) : failure.fileUrl ? (
@@ -282,32 +293,34 @@ export default function FailureDetailPage() {
                       target.parentElement?.appendChild(placeholder)
                     }}
                   />
-                  <button
-                    onClick={async () => {
-                      try {
-                        const response = await fetch(`/api/failures/${id}`, {
-                          method: 'PUT',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            fileUrl: undefined,
-                            fileName: undefined,
-                            fileType: undefined,
-                          }),
-                        })
-                        if (response.ok) {
-                          const updated = await response.json()
-                          setFailure(updated)
+                  {isAuthor && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(`/api/failures/${id}`, {
+                            method: 'PUT',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              fileUrl: undefined,
+                              fileName: undefined,
+                              fileType: undefined,
+                            }),
+                          })
+                          if (response.ok) {
+                            const updated = await response.json()
+                            setFailure(updated)
+                          }
+                        } catch (error) {
+                          console.error('[failure-detail] 이미지 삭제 오류:', error)
                         }
-                      } catch (error) {
-                        console.error('[failure-detail] 이미지 삭제 오류:', error)
-                      }
-                    }}
-                    className="absolute top-4 right-4 bg-black/70 text-red-400 text-sm px-3 py-2 rounded min-h-[44px] backdrop-blur-sm"
-                  >
-                    삭제
-                  </button>
+                      }}
+                      className="absolute top-4 right-4 bg-black/70 text-red-400 text-sm px-3 py-2 rounded min-h-[44px] backdrop-blur-sm"
+                    >
+                      삭제
+                    </button>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -354,10 +367,12 @@ export default function FailureDetailPage() {
             )}
 
             {/* 파일 업로드 섹션 */}
-            <FileUploadSection
-              onUploadSuccess={handleFileUploadSuccess}
-              onUploadError={handleFileUploadError}
-            />
+            {isAuthor && (
+              <FileUploadSection
+                onUploadSuccess={handleFileUploadSuccess}
+                onUploadError={handleFileUploadError}
+              />
+            )}
 
             {/* AI 분석 섹션 */}
             <AISummarySection failure={failure} />

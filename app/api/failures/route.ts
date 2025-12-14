@@ -39,6 +39,9 @@ export async function POST(request: NextRequest) {
       fileName: body.fileName,
       fileType: body.fileType,
       aiStatus: body.aiStatus || 'none',
+      authorId: body.authorId,
+      authorName: body.authorName,
+      avatarId: body.avatarId,
     })
 
     // Discord Webhook으로 전송 (선택적)

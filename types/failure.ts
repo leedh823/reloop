@@ -12,6 +12,9 @@ export interface Failure {
   emotion?: string
   createdAt: string // ISO string
   aiStatus?: 'none' | 'done'
+  authorId?: string // 작성자 ID (localStorage의 guestId)
+  authorName?: string // 작성자 이름
+  avatarId?: string // 작성자 아바타 ID
   pdfUrl?: string
   filePreview?: {
     bullets: string[]

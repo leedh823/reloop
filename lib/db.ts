@@ -8,6 +8,21 @@ import { Failure } from '@/types/failure';
  */
 let failures: Failure[] = [];
 
+// 더미 계정 정보
+const dummyUsers = [
+  { id: 'dummy_user_1', name: '민수', avatarId: '프로필 1.png' },
+  { id: 'dummy_user_2', name: '지영', avatarId: '프로필 2.png' },
+  { id: 'dummy_user_3', name: '현우', avatarId: '프로필 3.png' },
+  { id: 'dummy_user_4', name: '수진', avatarId: '프로필 4.png' },
+  { id: 'dummy_user_5', name: '준호', avatarId: '프로필 5.png' },
+]
+
+// 더미 이미지 URL (실제 프로필 이미지 사용)
+const getDummyImageUrl = (index: number) => {
+  const imageNames = ['프로필 1.png', '프로필 2.png', '프로필3.png', '프로필 4.png', '프로필 5.png']
+  return `/images/${imageNames[index] || '프로필 1.png'}`
+}
+
 // 더미 데이터 초기화 (서버 시작 시)
 function initializeDummyData() {
   if (failures.length === 0) {
@@ -21,6 +36,16 @@ function initializeDummyData() {
         emotion: 'anxiety',
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
         aiStatus: 'none',
+        authorId: 'dummy_user_1',
+        authorName: '민수',
+        avatarId: '프로필 1.png',
+        images: [
+          {
+            url: getDummyImageUrl(0),
+            fileName: '프로젝트 발표 자료.png',
+            fileType: 'image/png',
+          },
+        ],
       },
       {
         id: 'failure_dummy_2',
@@ -31,6 +56,16 @@ function initializeDummyData() {
         emotion: 'regret',
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
         aiStatus: 'none',
+        authorId: 'dummy_user_2',
+        authorName: '지영',
+        avatarId: '프로필 2.png',
+        images: [
+          {
+            url: getDummyImageUrl(1),
+            fileName: '면접 준비 노트.jpg',
+            fileType: 'image/jpeg',
+          },
+        ],
       },
       {
         id: 'failure_dummy_3',
@@ -41,6 +76,16 @@ function initializeDummyData() {
         emotion: 'frustration',
         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         aiStatus: 'none',
+        authorId: 'dummy_user_3',
+        authorName: '현우',
+        avatarId: '프로필 3.png',
+        images: [
+          {
+            url: getDummyImageUrl(2),
+            fileName: '프로젝트 일정표.png',
+            fileType: 'image/png',
+          },
+        ],
       },
       {
         id: 'failure_dummy_4',
@@ -51,6 +96,16 @@ function initializeDummyData() {
         emotion: 'regret',
         createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
         aiStatus: 'none',
+        authorId: 'dummy_user_4',
+        authorName: '수진',
+        avatarId: '프로필 4.png',
+        images: [
+          {
+            url: getDummyImageUrl(3),
+            fileName: '생일 파티 초대장.jpg',
+            fileType: 'image/jpeg',
+          },
+        ],
       },
       {
         id: 'failure_dummy_5',
@@ -61,6 +116,16 @@ function initializeDummyData() {
         emotion: 'frustration',
         createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
         aiStatus: 'none',
+        authorId: 'dummy_user_5',
+        authorName: '준호',
+        avatarId: '프로필 5.png',
+        images: [
+          {
+            url: getDummyImageUrl(4),
+            fileName: '공부 계획표.png',
+            fileType: 'image/png',
+          },
+        ],
       },
     ];
     failures = dummyFailures;

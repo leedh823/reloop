@@ -212,6 +212,17 @@ function ComposeForm() {
         router.push(`/failures/${failureId}`)
       } else {
         // 새로 작성: API를 통해 저장
+        // 작성자 정보 가져오기
+        const guestId = typeof window !== 'undefined' ? localStorage.getItem('guestId') : null
+        const profile = typeof window !== 'undefined' ? (() => {
+          try {
+            const profileData = localStorage.getItem('reloop_profile')
+            return profileData ? JSON.parse(profileData) : null
+          } catch {
+            return null
+          }
+        })() : null
+
         const response = await fetch('/api/failures', {
           method: 'POST',
           headers: {
@@ -225,6 +236,9 @@ function ComposeForm() {
             emotion: formData.emotion,
             images: images.length > 0 ? images : undefined,
             aiStatus: 'none',
+            authorId: guestId || undefined,
+            authorName: profile?.name || undefined,
+            avatarId: profile?.avatarId || undefined,
           }),
         })
 

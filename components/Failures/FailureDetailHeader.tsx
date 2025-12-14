@@ -8,9 +8,10 @@ interface FailureDetailHeaderProps {
   onEdit: () => void
   onDelete: () => void
   onComment?: () => void
+  isAuthor?: boolean // 작성자 여부
 }
 
-export default function FailureDetailHeader({ onEdit, onDelete, onComment }: FailureDetailHeaderProps) {
+export default function FailureDetailHeader({ onEdit, onDelete, onComment, isAuthor = true }: FailureDetailHeaderProps) {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -57,24 +58,28 @@ export default function FailureDetailHeader({ onEdit, onDelete, onComment }: Fai
               댓글
             </button>
           )}
-          <button
-            onClick={() => {
-              setIsMenuOpen(false)
-              onEdit()
-            }}
-            className="w-full text-left px-4 py-3 min-h-[48px] bg-[#2A2A2A] rounded-lg text-white hover:bg-[#333333] transition-colors"
-          >
-            편집
-          </button>
-          <button
-            onClick={() => {
-              setIsMenuOpen(false)
-              onDelete()
-            }}
-            className="w-full text-left px-4 py-3 min-h-[48px] bg-[#2A2A2A] rounded-lg text-red-400 hover:bg-[#333333] transition-colors"
-          >
-            삭제
-          </button>
+          {isAuthor && (
+            <>
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  onEdit()
+                }}
+                className="w-full text-left px-4 py-3 min-h-[48px] bg-[#2A2A2A] rounded-lg text-white hover:bg-[#333333] transition-colors"
+              >
+                편집
+              </button>
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  onDelete()
+                }}
+                className="w-full text-left px-4 py-3 min-h-[48px] bg-[#2A2A2A] rounded-lg text-red-400 hover:bg-[#333333] transition-colors"
+              >
+                삭제
+              </button>
+            </>
+          )}
         </div>
       </BottomSheet>
     </>
