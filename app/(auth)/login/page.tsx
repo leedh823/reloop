@@ -42,10 +42,6 @@ export default function LoginPage() {
               priority
             />
           </div>
-          <h1 className="text-2xl font-bold text-reloop-blue mb-4">Reloop</h1>
-          <p className="text-reloop-blue text-base font-medium">
-            "We don't stop — we reloop."
-          </p>
         </div>
       </div>
 
