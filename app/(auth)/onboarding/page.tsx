@@ -2,29 +2,30 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { PrimaryButton } from '@/components/UI/Button'
 
 interface OnboardingStep {
   title: string
   description: string
-  image: string // 이모지 또는 이미지 경로
+  image: string // 이미지 경로 또는 이모지
 }
 
 const onboardingSteps: OnboardingStep[] = [
   {
     title: '실패는 멈춤이 아니에요',
     description: '누구나 넘어질 수 있어요.\n중요한 건 다시 시작할 수 있다는 것.',
-    image: '💪',
+    image: '/images/hero-image.png', // 일러스트레이션 이미지
   },
   {
     title: '실패는 정리되지 않으면 남아요',
     description: '감정과 경험이 섞인 채로\n그냥 흘려보내지 마세요.',
-    image: '📝',
+    image: '/images/hero-image.png', // 일러스트레이션 이미지
   },
   {
     title: 'Reloop은 실패를 정리해줘요',
     description: '기록하고, AI로 구조화하고,\n다시 시도할 수 있게 돕습니다.',
-    image: '🤖',
+    image: '/images/hero-image.png', // 일러스트레이션 이미지
   },
 ]
 
@@ -47,13 +48,20 @@ export default function OnboardingPage() {
   const isLastStep = currentStep === totalSteps - 1
 
   return (
-    <div className="h-screen w-full bg-black flex flex-col overflow-hidden safe-area-top safe-area-bottom">
+    <div className="h-screen w-full bg-white flex flex-col overflow-hidden safe-area-top safe-area-bottom">
       {/* 상단: 로고 + Progress Dots */}
       <header className="flex-shrink-0 px-4 pt-6 pb-4">
         <div className="flex items-center justify-between">
           {/* 로고 */}
           <div className="flex items-center">
-            <span className="text-xl font-bold text-reloop-blue">Reloop</span>
+            <Image
+              src="/images/logo.png"
+              alt="Reloop"
+              width={100}
+              height={32}
+              className="h-8 w-auto"
+              priority
+            />
           </div>
 
           {/* Progress Dots */}
@@ -66,7 +74,7 @@ export default function OnboardingPage() {
                     ? 'bg-reloop-blue w-6'
                     : index < currentStep
                     ? 'bg-reloop-blue/50 w-2'
-                    : 'bg-[#2A2A2A] w-2'
+                    : 'bg-gray-300 w-2'
                 }`}
               />
             ))}
@@ -74,28 +82,37 @@ export default function OnboardingPage() {
         </div>
       </header>
 
-      {/* 중앙: 이미지 + 텍스트 (가변 영역) */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 overflow-hidden">
-        <div className="w-full max-w-sm space-y-8 text-center">
-          {/* 이미지 영역 */}
-          <div className="flex items-center justify-center min-h-[200px]">
-            <div 
-              key={currentStep}
-              className="text-8xl animate-fade-in"
-            >
-              {currentStepData.image}
-            </div>
+      {/* 중앙: 일러스트레이션 이미지 (큰 영역) */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 overflow-hidden bg-white">
+        <div className="w-full max-w-sm flex flex-col items-center justify-center space-y-8">
+          {/* 이미지 영역 - 큰 일러스트레이션 */}
+          <div 
+            key={`image-${currentStep}`}
+            className="flex items-center justify-center w-full aspect-square max-w-[320px] animate-fade-in"
+          >
+            {currentStepData.image.startsWith('/') ? (
+              <Image
+                src={currentStepData.image}
+                alt={currentStepData.title}
+                width={320}
+                height={320}
+                className="w-full h-full object-contain"
+                priority={currentStep === 0}
+              />
+            ) : (
+              <div className="text-8xl">{currentStepData.image}</div>
+            )}
           </div>
 
-          {/* 텍스트 영역 */}
+          {/* 텍스트 영역 - 이미지 아래 */}
           <div 
             key={`text-${currentStep}`}
-            className="space-y-4 animate-fade-in"
+            className="w-full space-y-3 text-center animate-fade-in"
           >
-            <h1 className="text-2xl font-bold text-white leading-tight px-4">
+            <h1 className="text-2xl font-bold text-black leading-tight">
               {currentStepData.title}
             </h1>
-            <p className="text-base text-[#B3B3B3] leading-relaxed whitespace-pre-line px-4">
+            <p className="text-base text-gray-600 leading-relaxed whitespace-pre-line">
               {currentStepData.description}
             </p>
           </div>
@@ -103,7 +120,7 @@ export default function OnboardingPage() {
       </main>
 
       {/* 하단: 고정 CTA 버튼 */}
-      <footer className="flex-shrink-0 px-4 pb-6 safe-area-bottom">
+      <footer className="flex-shrink-0 px-4 pb-8 safe-area-bottom">
         <PrimaryButton
           onClick={handleNext}
           fullWidth
@@ -113,7 +130,6 @@ export default function OnboardingPage() {
           {isLastStep ? '시작하기' : '다음'}
         </PrimaryButton>
       </footer>
-
     </div>
   )
 }

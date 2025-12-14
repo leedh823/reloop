@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { PrimaryButton, SecondaryButton } from '@/components/UI/Button'
 
 export default function LoginPage() {
@@ -24,12 +25,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 safe-area-top safe-area-bottom">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 safe-area-top safe-area-bottom">
       <div className="max-w-md w-full space-y-6">
         {/* 로고 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-reloop-blue mb-2">Reloop</h1>
-          <p className="text-[#B3B3B3] text-sm">실패를 기록하고 다시 도전하세요</p>
+          <Image
+            src="/images/logo.png"
+            alt="Reloop"
+            width={120}
+            height={40}
+            className="h-10 w-auto mx-auto mb-3"
+            priority
+          />
+          <p className="text-gray-600 text-sm">실패를 기록하고 다시 도전하세요</p>
         </div>
 
         {/* 로그인 옵션 */}
