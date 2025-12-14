@@ -19,7 +19,15 @@ export default function LoginPage() {
     // 게스트 ID 생성 (간단한 랜덤 문자열)
     const guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
     localStorage.setItem('guestId', guestId)
-    router.push('/onboarding')
+    
+    // 프로필 온보딩 체크
+    const { getProfile } = require('@/lib/storage/profile')
+    const profile = getProfile()
+    if (!profile || !profile.completed) {
+      router.push('/profile-onboarding')
+    } else {
+      router.push('/home')
+    }
   }
 
   const handleKakaoLogin = () => {

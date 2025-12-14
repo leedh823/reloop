@@ -48,27 +48,15 @@ export default function OnboardingPage() {
     } else {
       // 마지막 step: 시작하기
       localStorage.setItem('onboardingCompleted', 'true')
-      // 프로필 온보딩 체크
-      const { getProfile } = require('@/lib/storage/profile')
-      const profile = getProfile()
-      if (!profile || !profile.completed) {
-        router.push('/profile-onboarding')
-      } else {
-        router.push('/home')
-      }
+      // 로그인 페이지로 이동
+      router.push('/login')
     }
   }
 
   const handleSkip = () => {
     localStorage.setItem('onboardingCompleted', 'true')
-    // 프로필 온보딩 체크
-    const { getProfile } = require('@/lib/storage/profile')
-    const profile = getProfile()
-    if (!profile || !profile.completed) {
-      router.push('/profile-onboarding')
-    } else {
-      router.push('/home')
-    }
+    // 로그인 페이지로 이동
+    router.push('/login')
   }
 
   const currentStepData = onboardingSteps[currentStep]

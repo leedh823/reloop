@@ -14,9 +14,9 @@ export default function SplashPage() {
       metaThemeColor.setAttribute('content', '#000000')
     }
 
-    // 2초 후 로그인 페이지로 이동
+    // 2초 후 온보딩 페이지로 이동
     const timer = setTimeout(() => {
-      router.push('/login')
+      router.push('/onboarding')
     }, 2000)
 
     return () => clearTimeout(timer)

@@ -30,15 +30,15 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
       return
     }
 
-    // 게스트 ID가 없으면 로그인으로
-    if (!guestId && !isPublicPath) {
-      router.replace('/login')
+    // 온보딩이 완료되지 않았으면 온보딩으로
+    if (!onboardingCompleted && !isPublicPath) {
+      router.replace('/onboarding')
       return
     }
 
-    // 온보딩이 완료되지 않았으면 온보딩으로
-    if (!onboardingCompleted && guestId && !isPublicPath) {
-      router.replace('/onboarding')
+    // 게스트 ID가 없으면 로그인으로 (온보딩 완료 후)
+    if (onboardingCompleted && !guestId && !isPublicPath) {
+      router.replace('/login')
       return
     }
 
