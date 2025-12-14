@@ -195,14 +195,22 @@ export default function FailureDetailPage() {
               {failure.images && failure.images.length > 0 ? (
                 failure.images.map((image, index) => (
                   <div key={index} className="relative w-full bg-black">
-                    <Image
-                      src={image.url}
-                      alt={image.fileName || `이미지 ${index + 1}`}
-                      width={800}
-                      height={600}
-                      className="w-full h-auto object-cover"
-                      unoptimized
-                    />
+                    {image.url.startsWith('blob:') || image.url.startsWith('http') ? (
+                      <img
+                        src={image.url}
+                        alt={image.fileName || `이미지 ${index + 1}`}
+                        className="w-full h-auto object-contain"
+                      />
+                    ) : (
+                      <Image
+                        src={image.url}
+                        alt={image.fileName || `이미지 ${index + 1}`}
+                        width={800}
+                        height={600}
+                        className="w-full h-auto object-contain"
+                        unoptimized
+                      />
+                    )}
                     <button
                       onClick={() => {
                         try {
@@ -228,14 +236,22 @@ export default function FailureDetailPage() {
                 ))
               ) : failure.fileUrl ? (
                 <div className="relative w-full bg-black">
-                  <Image
-                    src={failure.fileUrl}
-                    alt={failure.fileName || '이미지'}
-                    width={800}
-                    height={600}
-                    className="w-full h-auto object-cover"
-                    unoptimized
-                  />
+                  {failure.fileUrl.startsWith('blob:') || failure.fileUrl.startsWith('http') ? (
+                    <img
+                      src={failure.fileUrl}
+                      alt={failure.fileName || '이미지'}
+                      className="w-full h-auto object-contain"
+                    />
+                  ) : (
+                    <Image
+                      src={failure.fileUrl}
+                      alt={failure.fileName || '이미지'}
+                      width={800}
+                      height={600}
+                      className="w-full h-auto object-contain"
+                      unoptimized
+                    />
+                  )}
                   <button
                     onClick={() => {
                       try {

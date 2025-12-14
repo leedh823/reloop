@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/Layout/AppShell'
 import { Failure } from '@/types/failure'
-import { getFailures } from '@/lib/storage/failures'
+import { getFailures, forceInitializeDummyData } from '@/lib/storage/failures'
 import FailureCard from '@/components/Failures/FailureCard'
 import EmptyState from '@/components/Failures/EmptyState'
 import SearchBar from '@/components/Failures/SearchBar'
@@ -24,9 +24,23 @@ export default function FailuresPage() {
   useEffect(() => {
     try {
       const data = getFailures()
-      setFailures(data)
+      // 더미 데이터가 없으면 강제 초기화
+      const hasDummyData = data.some(f => f.id.startsWith('failure_dummy_'))
+      if (!hasDummyData || data.length === 0) {
+        const dummyData = forceInitializeDummyData()
+        setFailures(dummyData)
+      } else {
+        setFailures(data)
+      }
     } catch (error) {
       console.error('[failures] 데이터 로드 오류:', error)
+      // 오류 발생 시 더미 데이터 강제 초기화
+      try {
+        const dummyData = forceInitializeDummyData()
+        setFailures(dummyData)
+      } catch (initError) {
+        console.error('[failures] 더미 데이터 초기화 실패:', initError)
+      }
     } finally {
       setLoading(false)
     }
