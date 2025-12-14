@@ -125,7 +125,8 @@ export default function AiOnboardingAndChatPage() {
 
         // 2. 클라이언트에서 직접 Blob에 업로드 (서버를 거치지 않음)
         // createMultipartUploader를 사용하여 클라이언트에서 직접 업로드
-        const uploader = await createMultipartUploader(file.name, {
+        // 중요: 서버에서 생성한 key를 사용해야 토큰의 pathname과 일치합니다
+        const uploader = await createMultipartUploader(key, {
           access: 'public',
           contentType: file.type || 'application/octet-stream',
           token: clientToken, // 서버에서 생성한 클라이언트 토큰 사용

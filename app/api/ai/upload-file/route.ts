@@ -118,45 +118,8 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // 멀티파트 업로드 생성
-    // 각 파트는 서버를 통해 업로드되므로 Vercel의 4.5MB 제한을 받음
-    // 하지만 Vercel Blob은 각 파트에 최소 크기 제한이 있음
-    // 마지막 파트가 너무 작으면 이전 파트와 합치기
-    const partSize = 4 * 1024 * 1024 // 4MB per part (Vercel 제한 고려)
-    let totalParts = Math.ceil(fileSize / partSize)
-    
-    // 마지막 파트 크기 확인
-    const lastPartSize = fileSize % partSize
-    const minPartSize = 1 * 1024 * 1024 // 1MB 최소 크기 (Vercel Blob 제한)
-    
-    // 마지막 파트가 너무 작으면 (1MB 미만) 이전 파트와 합치기
-    if (lastPartSize > 0 && lastPartSize < minPartSize && totalParts > 1) {
-      totalParts = totalParts - 1
-      console.log('[upload-file] 마지막 파트가 너무 작아서 파트 수 조정:', {
-        originalParts: totalParts + 1,
-        adjustedParts: totalParts,
-        lastPartSize,
-      })
-    }
-
-    console.log('[upload-file] 파트 크기 계산:', {
-      fileSize,
-      totalParts,
-      partSize,
-      lastPartSize: fileSize % partSize,
-    })
-
-    const { uploadId, key } = await createMultipartUpload(filename, {
-      access: 'public',
-      addRandomSuffix: true,
-      contentType: contentType || 'application/octet-stream',
-    })
-
-    console.log('[upload-file] 멀티파트 업로드 생성 성공:', {
-      uploadId,
-      key,
-      totalParts,
-    })
+    // 클라이언트에서 직접 업로드하므로 서버에서 세션을 생성하지 않음
+    // 클라이언트 토큰만 생성하여 반환
 
     // 클라이언트에서 직접 업로드할 수 있도록 클라이언트 토큰 생성
     // 이 토큰을 사용하여 클라이언트에서 직접 Blob에 업로드 가능
@@ -168,9 +131,11 @@ export async function PUT(request: NextRequest) {
         throw new Error('BLOB_READ_WRITE_TOKEN이 설정되지 않았습니다.')
       }
 
+      // 클라이언트에서 파일명을 사용하므로, pathname은 파일명으로 설정
+      // 클라이언트에서 createMultipartUploader를 호출할 때 동일한 파일명을 사용해야 함
       clientToken = await generateClientTokenFromReadWriteToken({
         token: process.env.BLOB_READ_WRITE_TOKEN,
-        pathname: key,
+        pathname: filename, // 클라이언트에서 사용할 파일명과 일치해야 함
         allowedContentTypes: [contentType || 'application/octet-stream'],
       })
 
@@ -187,10 +152,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      uploadId,
-      key,
-      totalParts,
-      partSize,
       clientToken: clientToken || null, // 클라이언트에서 직접 업로드할 수 있는 토큰
     })
   } catch (error: any) {
