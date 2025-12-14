@@ -21,17 +21,20 @@ export default function FileUploadSection({
     const file = e.target.files?.[0]
     if (!file) return
 
-    // 파일 타입 검증
+    // 파일 타입 검증 (이미지만 허용)
     const fileExtension = file.name.split('.').pop()?.toLowerCase()
-    if (!['pdf', 'txt'].includes(fileExtension || '')) {
-      onUploadError('PDF 또는 TXT 파일만 업로드할 수 있습니다.')
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+    
+    if (!allowedImageTypes.includes(file.type) && !allowedExtensions.includes(fileExtension || '')) {
+      onUploadError('이미지 파일만 업로드할 수 있습니다. (JPG, PNG, GIF, WEBP)')
       return
     }
 
-    // 파일 크기 검증 (50MB)
-    const maxSize = 50 * 1024 * 1024
+    // 파일 크기 검증 (10MB)
+    const maxSize = 10 * 1024 * 1024
     if (file.size > maxSize) {
-      onUploadError(`파일이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 50MB까지 지원합니다.`)
+      onUploadError(`이미지가 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 10MB까지 지원합니다.`)
       return
     }
 
@@ -49,7 +52,7 @@ export default function FileUploadSection({
         },
         body: JSON.stringify({
           filename: file.name,
-          contentType: file.type || (fileExtension === 'pdf' ? 'application/pdf' : 'text/plain'),
+          contentType: file.type || 'image/jpeg',
           fileSize: file.size,
         }),
       })
@@ -66,7 +69,7 @@ export default function FileUploadSection({
         method: 'PUT',
         body: file,
         headers: {
-          'Content-Type': file.type || (fileExtension === 'pdf' ? 'application/pdf' : 'text/plain'),
+          'Content-Type': file.type || 'image/jpeg',
         },
       })
 
@@ -106,10 +109,10 @@ export default function FileUploadSection({
     <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-5 mb-6">
       <div className="mb-3">
         <h3 className="text-sm font-medium text-white mb-1">
-          관련 자료가 있다면 파일을 올려보세요.
+          관련 이미지가 있다면 올려보세요.
         </h3>
         <p className="text-xs text-[#777777]">
-          파일 내용을 먼저 정리해서 보여드릴게요.
+          사진을 찍거나 갤러리에서 선택할 수 있어요.
         </p>
       </div>
 
@@ -117,7 +120,8 @@ export default function FileUploadSection({
         <input
           type="file"
           ref={fileInputRef}
-          accept=".pdf,.txt"
+          accept="image/*"
+          capture="environment"
           onChange={handleFileSelect}
           disabled={disabled || uploading}
           className="hidden"
@@ -132,8 +136,8 @@ export default function FileUploadSection({
             <span className="text-[#B3B3B3]">업로드 중...</span>
           ) : (
             <>
-              <span className="mr-2">📄</span>
-              <span>PDF 또는 TXT 파일 선택 (최대 50MB)</span>
+              <span className="mr-2">📷</span>
+              <span>이미지 선택 (최대 10MB)</span>
             </>
           )}
         </label>
@@ -141,7 +145,8 @@ export default function FileUploadSection({
           id="file-upload"
           type="file"
           ref={fileInputRef}
-          accept=".pdf,.txt"
+          accept="image/*"
+          capture="environment"
           onChange={handleFileSelect}
           disabled={disabled || uploading}
           className="hidden"

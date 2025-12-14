@@ -190,8 +190,8 @@ export default function FailureDetailPage() {
                  <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-4">
                    <div className="flex items-center justify-between mb-3">
                      <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                       <span>📄</span>
-                       {failure.fileName || '업로드된 파일'}
+                       <span>📷</span>
+                       {failure.fileName || '업로드된 이미지'}
                      </h3>
                      <button
                        onClick={() => {
@@ -214,20 +214,7 @@ export default function FailureDetailPage() {
                      </button>
                    </div>
                    <div className="w-full">
-                     {failure.fileType === 'application/pdf' ? (
-                       <div className="bg-[#2A2A2A] rounded p-6 text-center space-y-4">
-                         <div className="text-6xl mb-4">📄</div>
-                         <p className="text-white text-sm mb-4">{failure.fileName || 'PDF 파일'}</p>
-                         <a
-                           href={failure.fileUrl}
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           className="inline-block px-6 py-3 bg-reloop-blue text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors min-h-[48px]"
-                         >
-                           PDF 보기
-                         </a>
-                       </div>
-                     ) : failure.fileType?.startsWith('image/') ? (
+                     {failure.fileType?.startsWith('image/') ? (
                        <img
                          src={failure.fileUrl}
                          alt={failure.fileName || '이미지'}
