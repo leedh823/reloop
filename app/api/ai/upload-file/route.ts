@@ -182,8 +182,11 @@ export async function PATCH(request: NextRequest) {
     })
 
     // 멀티파트 업로드 완료
-    // access 옵션 추가 (createMultipartUpload와 동일하게 'public' 설정)
-    const blob = await (completeMultipartUpload as any)(key, uploadId, parts, {
+    // completeMultipartUpload는 (pathname, parts, options) 형태
+    // uploadId와 key는 options 안에 포함
+    const blob = await completeMultipartUpload(key, parts, {
+      uploadId,
+      key,
       access: 'public',
     })
 
