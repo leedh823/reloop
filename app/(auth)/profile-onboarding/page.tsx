@@ -81,7 +81,7 @@ function ProfileOnboardingContent() {
   }, [])
 
   return (
-    <div className="h-screen w-full bg-white flex flex-col overflow-hidden safe-area-top safe-area-bottom">
+    <div className="min-h-screen bg-white flex flex-col px-4 safe-area-top safe-area-bottom">
       {/* Progress Bar */}
       <div className="flex-shrink-0 px-4 pt-6 pb-4">
         <div className="flex items-center justify-between mb-2">
