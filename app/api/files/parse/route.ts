@@ -4,7 +4,8 @@ import { extractText, getDocumentProxy } from 'unpdf'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+const MAX_PDF_PAGES = 10 // PDF 최대 페이지 수
 
 /**
  * 파일 파싱 API
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: `파일이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 10MB까지 지원합니다.`,
+          error: `파일이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 50MB까지 지원합니다.`,
         },
         { status: 413 }
       )
@@ -71,6 +72,17 @@ export async function POST(request: NextRequest) {
         const numPages = pdf.numPages || 0
 
         console.log('[files/parse] PDF 문서 로드 완료:', { numPages })
+
+        // PDF 페이지 수 검증
+        if (numPages > MAX_PDF_PAGES) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error: `PDF 파일의 페이지 수가 너무 많습니다. (${numPages}페이지)\n\n최대 ${MAX_PDF_PAGES}페이지까지 지원합니다.`,
+            },
+            { status: 400 }
+          )
+        }
 
         // extractText로 전체 텍스트 추출 시도
         let fullText = ''

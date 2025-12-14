@@ -28,12 +28,14 @@ export default function FileUploadSection({
       return
     }
 
-    // 파일 크기 검증 (10MB)
-    const maxSize = 10 * 1024 * 1024
+    // 파일 크기 검증 (50MB)
+    const maxSize = 50 * 1024 * 1024
     if (file.size > maxSize) {
-      onUploadError(`파일이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 10MB까지 지원합니다.`)
+      onUploadError(`파일이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 50MB까지 지원합니다.`)
       return
     }
+
+    // PDF 파일인 경우 페이지 수는 서버에서 검증 (클라이언트에서는 파일 크기만 체크)
 
     setSelectedFile(file)
     setUploading(true)
@@ -111,7 +113,7 @@ export default function FileUploadSection({
           ) : (
             <>
               <span className="mr-2">📄</span>
-              <span>PDF 또는 TXT 파일 선택 (최대 10MB)</span>
+              <span>PDF 또는 TXT 파일 선택 (PDF 최대 10페이지, 최대 50MB)</span>
             </>
           )}
         </label>
