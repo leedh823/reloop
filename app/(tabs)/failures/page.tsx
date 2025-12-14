@@ -24,14 +24,8 @@ export default function FailuresPage() {
   useEffect(() => {
     try {
       const data = getFailures()
-      // 더미 데이터가 없으면 강제 초기화
-      const hasDummyData = data.some(f => f.id.startsWith('failure_dummy_'))
-      if (!hasDummyData || data.length === 0) {
-        const dummyData = forceInitializeDummyData()
-        setFailures(dummyData)
-      } else {
-        setFailures(data)
-      }
+      // 항상 최소 5개의 더미 데이터가 포함되도록 보장
+      setFailures(data)
     } catch (error) {
       console.error('[failures] 데이터 로드 오류:', error)
       // 오류 발생 시 더미 데이터 강제 초기화

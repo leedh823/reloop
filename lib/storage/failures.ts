@@ -122,6 +122,7 @@ export function forceInitializeDummyData(): Failure[] {
 
 /**
  * 모든 실패 목록 조회
+ * 시연용: 항상 최소 5개의 더미 데이터가 포함되도록 보장
  */
 export function getFailures(): Failure[] {
   if (typeof window === 'undefined') {
@@ -130,21 +131,44 @@ export function getFailures(): Failure[] {
 
   try {
     const data = localStorage.getItem(STORAGE_KEY)
-    if (!data) {
-      // 데이터가 없으면 더미 데이터 초기화
-      const dummyData = initializeDummyData()
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(dummyData))
-      return dummyData.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
-    }
-    const failures: Failure[] = JSON.parse(data)
+    let failures: Failure[] = []
     
-    // 더미 데이터가 없으면 추가 (기존 데이터와 중복 체크)
-    const hasDummyData = failures.some(f => f.id.startsWith('failure_dummy_'))
-    if (!hasDummyData) {
-      const dummyData = initializeDummyData()
-      const allFailures = [...failures, ...dummyData]
+    if (data) {
+      try {
+        failures = JSON.parse(data)
+      } catch (e) {
+        console.warn('[storage] 데이터 파싱 오류, 초기화합니다.')
+      }
+    }
+    
+    // 더미 데이터 필터링
+    const dummyData = failures.filter(f => f.id.startsWith('failure_dummy_'))
+    const userData = failures.filter(f => !f.id.startsWith('failure_dummy_'))
+    
+    // 더미 데이터가 5개 미만이면 추가
+    if (dummyData.length < 5) {
+      const newDummyData = initializeDummyData()
+      // 기존 더미 데이터 ID와 중복되지 않는 것만 추가
+      const existingDummyIds = new Set(dummyData.map(d => d.id))
+      const additionalDummy = newDummyData.filter(d => !existingDummyIds.has(d.id))
+      
+      // 최소 5개가 되도록 추가
+      const needed = 5 - dummyData.length
+      const toAdd = additionalDummy.slice(0, needed)
+      
+      if (toAdd.length > 0) {
+        const allFailures = [...userData, ...dummyData, ...toAdd]
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(allFailures))
+        return allFailures.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+      }
+    }
+    
+    // 더미 데이터가 없으면 전체 초기화
+    if (dummyData.length === 0) {
+      const newDummyData = initializeDummyData()
+      const allFailures = [...userData, ...newDummyData]
       localStorage.setItem(STORAGE_KEY, JSON.stringify(allFailures))
       return allFailures.sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -158,7 +182,11 @@ export function getFailures(): Failure[] {
     console.error('[storage] 실패 목록 조회 오류:', error)
     // 오류 발생 시 더미 데이터로 초기화
     try {
-      return forceInitializeDummyData()
+      const dummyData = initializeDummyData()
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dummyData))
+      return dummyData.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
     } catch (initError) {
       console.error('[storage] 더미 데이터 초기화도 실패:', initError)
       return []

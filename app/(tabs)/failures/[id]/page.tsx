@@ -195,22 +195,21 @@ export default function FailureDetailPage() {
               {failure.images && failure.images.length > 0 ? (
                 failure.images.map((image, index) => (
                   <div key={index} className="relative w-full bg-black">
-                    {image.url.startsWith('blob:') || image.url.startsWith('http') ? (
-                      <img
-                        src={image.url}
-                        alt={image.fileName || `이미지 ${index + 1}`}
-                        className="w-full h-auto object-contain"
-                      />
-                    ) : (
-                      <Image
-                        src={image.url}
-                        alt={image.fileName || `이미지 ${index + 1}`}
-                        width={800}
-                        height={600}
-                        className="w-full h-auto object-contain"
-                        unoptimized
-                      />
-                    )}
+                    <img
+                      src={image.url}
+                      alt={image.fileName || `이미지 ${index + 1}`}
+                      className="w-full h-auto object-contain"
+                      onError={(e) => {
+                        console.error('[failure-detail] 이미지 로드 오류:', image.url)
+                        // 이미지 로드 실패 시 placeholder 표시
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                        const placeholder = document.createElement('div')
+                        placeholder.className = 'w-full h-64 bg-[#1a1a1a] flex items-center justify-center text-[#777777]'
+                        placeholder.textContent = '이미지를 불러올 수 없습니다'
+                        target.parentElement?.appendChild(placeholder)
+                      }}
+                    />
                     <button
                       onClick={() => {
                         try {
@@ -236,22 +235,21 @@ export default function FailureDetailPage() {
                 ))
               ) : failure.fileUrl ? (
                 <div className="relative w-full bg-black">
-                  {failure.fileUrl.startsWith('blob:') || failure.fileUrl.startsWith('http') ? (
-                    <img
-                      src={failure.fileUrl}
-                      alt={failure.fileName || '이미지'}
-                      className="w-full h-auto object-contain"
-                    />
-                  ) : (
-                    <Image
-                      src={failure.fileUrl}
-                      alt={failure.fileName || '이미지'}
-                      width={800}
-                      height={600}
-                      className="w-full h-auto object-contain"
-                      unoptimized
-                    />
-                  )}
+                  <img
+                    src={failure.fileUrl}
+                    alt={failure.fileName || '이미지'}
+                    className="w-full h-auto object-contain"
+                    onError={(e) => {
+                      console.error('[failure-detail] 이미지 로드 오류:', failure.fileUrl)
+                      // 이미지 로드 실패 시 placeholder 표시
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      const placeholder = document.createElement('div')
+                      placeholder.className = 'w-full h-64 bg-[#1a1a1a] flex items-center justify-center text-[#777777]'
+                      placeholder.textContent = '이미지를 불러올 수 없습니다'
+                      target.parentElement?.appendChild(placeholder)
+                    }}
+                  />
                   <button
                     onClick={() => {
                       try {
