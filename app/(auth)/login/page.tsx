@@ -36,9 +36,9 @@ export default function LoginPage() {
             <Image
               src="/images/logo1.png"
               alt="Reloop"
-              width={120}
-              height={120}
-              className="h-20 w-20 object-contain"
+              width={200}
+              height={200}
+              className="h-32 w-32 object-contain"
               priority
             />
           </div>
