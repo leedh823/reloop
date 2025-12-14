@@ -8,24 +8,24 @@ import { PrimaryButton } from '@/components/UI/Button'
 interface OnboardingStep {
   title: string
   description: string
-  imagePlaceholder: string // 네모 박스 placeholder 설명
+  image: string // 이미지 경로
 }
 
 const onboardingSteps: OnboardingStep[] = [
   {
     title: '실패는 멈춤이 아니에요',
     description: '누구나 넘어질 수 있어요.\n중요한 건 다시 시작할 수 있다는 것.',
-    imagePlaceholder: '일러스트레이션 1',
+    image: '/images/onboading 1.png',
   },
   {
     title: '실패를 나누면, 혼자가 아니게 돼요',
     description: '같은 경험을 한 사람들의 공감과 조언이 힘이 돼요.',
-    imagePlaceholder: '일러스트레이션 2',
+    image: '/images/onboading 2.png',
   },
   {
     title: '실패를 나누면, 혼자가 아니게 돼요',
     description: '같은 경험을 한 사람들의 공감과 조언이 힘이 돼요.',
-    imagePlaceholder: '일러스트레이션 3',
+    image: '/images/onboading 3.png',
   },
 ]
 
@@ -109,12 +109,19 @@ export default function OnboardingPage() {
       {/* 중앙: 일러스트레이션 */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 overflow-hidden bg-white">
         <div className="w-full max-w-sm flex flex-col items-center justify-center space-y-8">
-          {/* 이미지 영역 - 네모 박스 placeholder */}
+          {/* 이미지 영역 */}
           <div 
             key={`image-${currentStep}`}
-            className="flex items-center justify-center w-full aspect-square max-w-[280px] bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg animate-fade-in"
+            className="flex items-center justify-center w-full aspect-square max-w-[280px] animate-fade-in"
           >
-            <span className="text-gray-400 text-sm">{currentStepData.imagePlaceholder}</span>
+            <Image
+              src={currentStepData.image}
+              alt={currentStepData.title}
+              width={280}
+              height={280}
+              className="w-full h-full object-contain"
+              priority={currentStep === 0}
+            />
           </div>
 
           {/* 텍스트 영역 - 이미지 아래 */}
