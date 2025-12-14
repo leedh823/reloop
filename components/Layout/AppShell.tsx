@@ -32,10 +32,10 @@ export default function AppShell({ children, title, rightAction }: AppShellProps
   const showFAB = !pathname.startsWith('/compose')
 
   const isSettingsPage = pathname === '/settings'
-  const headerBg = isSettingsPage ? 'bg-white' : 'bg-black'
-  const headerBorder = isSettingsPage ? 'border-gray-200' : 'border-[#2A2A2A]'
-  const headerText = isSettingsPage ? 'text-gray-900' : 'text-white'
-  const mainBg = isSettingsPage ? 'bg-white' : 'bg-black'
+  const headerBg = 'bg-black'
+  const headerBorder = 'border-[#2A2A2A]'
+  const headerText = 'text-white'
+  const mainBg = 'bg-black'
 
   return (
     <div className={`flex flex-col h-screen w-full max-w-md mx-auto ${mainBg} overflow-hidden`}>
@@ -46,17 +46,17 @@ export default function AppShell({ children, title, rightAction }: AppShellProps
             <>
               <button
                 onClick={() => router.back()}
-                className="p-2 min-h-[44px] min-w-[44px] -ml-2 mr-2"
+                className="p-2 min-h-[44px] min-w-[44px] -ml-2 mr-2 text-white"
                 aria-label="뒤로가기"
               >
-                <svg className={`w-6 h-6 ${headerText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h1 className={`text-lg font-semibold ${headerText} truncate`}>{title}</h1>
+              <h1 className="text-lg font-semibold text-white truncate">{title}</h1>
             </>
           ) : title ? (
-            <h1 className={`text-lg font-semibold ${headerText} truncate`}>{title}</h1>
+            <h1 className="text-lg font-semibold text-white truncate">{title}</h1>
           ) : (
             <Link href="/home" className="flex items-center space-x-2 min-w-0">
               <span className="text-xl font-bold text-reloop-blue">Reloop</span>

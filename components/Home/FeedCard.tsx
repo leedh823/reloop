@@ -155,7 +155,3 @@ export default function FeedCard({ item }: FeedCardProps) {
   )
 }
 
-
-
-
-

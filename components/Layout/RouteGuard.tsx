@@ -16,7 +16,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     const guestId = localStorage.getItem('guestId')
     const profile = getProfile()
     
-    const publicPaths = ['/splash', '/login', '/onboarding', '/profile-onboarding']
+    const publicPaths = ['/splash', '/login', '/onboarding', '/profile-onboarding', '/settings']
     const isPublicPath = publicPaths.includes(pathname)
 
     // 스플래시는 항상 접근 가능
@@ -52,8 +52,8 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
       return
     }
 
-    // 무조건 프로필 온보딩으로 리다이렉트 (단, /me 페이지와 /profile-onboarding은 예외)
-    if (onboardingCompleted && guestId && pathname !== '/profile-onboarding' && pathname !== '/me') {
+    // 무조건 프로필 온보딩으로 리다이렉트 (단, /me, /profile-onboarding, /settings는 예외)
+    if (onboardingCompleted && guestId && pathname !== '/profile-onboarding' && pathname !== '/me' && pathname !== '/settings') {
       // 프로필 초기화 (작성한 글은 유지)
       const profile = getProfile()
       if (profile && profile.completed) {
