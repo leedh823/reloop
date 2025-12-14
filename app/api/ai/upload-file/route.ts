@@ -133,10 +133,15 @@ export async function PUT(request: NextRequest) {
 
       // 클라이언트에서 파일명을 사용하므로, pathname은 파일명으로 설정
       // 클라이언트에서 createMultipartUploader를 호출할 때 동일한 파일명을 사용해야 함
+      // validUntil: 현재 시간 + 1시간 (밀리초) - 대용량 파일 업로드에 충분한 시간 제공
+      const validUntil = new Date()
+      validUntil.setHours(validUntil.getHours() + 1) // 1시간 후 만료
+      
       clientToken = await generateClientTokenFromReadWriteToken({
         token: process.env.BLOB_READ_WRITE_TOKEN,
         pathname: filename, // 클라이언트에서 사용할 파일명과 일치해야 함
         allowedContentTypes: [contentType || 'application/octet-stream'],
+        validUntil: validUntil.getTime(), // 밀리초 단위 타임스탬프
       })
 
       console.log('[upload-file] 클라이언트 토큰 생성 성공:', { 
