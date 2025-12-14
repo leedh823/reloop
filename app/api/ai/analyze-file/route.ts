@@ -201,54 +201,34 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
         console.log('[analyze-file] Buffer 생성 완료:', { length: buffer.length })
 
-        // pdfjs-dist worker를 모듈 로드 전에 비활성화 (매우 중요!)
-        // pdf-parse가 내부적으로 pdfjs-dist를 사용하므로, 먼저 설정해야 함
-        try {
-          // legacy 빌드를 먼저 시도 (서버 환경에 더 적합)
-          const pdfjsDist = require('pdfjs-dist/legacy/build/pdf.js')
-          if (pdfjsDist.GlobalWorkerOptions) {
-            pdfjsDist.GlobalWorkerOptions.workerSrc = ''
-            console.log('[analyze-file] pdfjs-dist worker 비활성화 완료 (legacy)')
-          }
-        } catch (e) {
-          console.warn('[analyze-file] pdfjs-dist legacy 로드 실패, 기본 버전 시도:', e)
-          try {
-            const pdfjsDist = require('pdfjs-dist')
-            if (pdfjsDist.GlobalWorkerOptions) {
-              pdfjsDist.GlobalWorkerOptions.workerSrc = ''
-              console.log('[analyze-file] pdfjs-dist worker 비활성화 완료 (기본 버전)')
-            }
-          } catch (e2) {
-            console.warn('[analyze-file] pdfjs-dist worker 설정 실패:', e2)
-          }
-        }
-
-        // pdf-parse 모듈 로드 (DOMMatrix 폴리필이 이미 설정됨)
-        const pdfParseModule = require('pdf-parse')
-        console.log('[analyze-file] pdf-parse 모듈 로드 완료:', { 
-          hasPDFParse: !!pdfParseModule.PDFParse,
-          PDFParseType: typeof pdfParseModule.PDFParse,
-          hasDOMMatrix: typeof globalThis.DOMMatrix !== 'undefined'
-        })
-
-        // PDFParse 클래스 사용
-        const PDFParse = pdfParseModule.PDFParse
-        
-        if (!PDFParse || typeof PDFParse !== 'function') {
-          console.error('[analyze-file] PDFParse 클래스를 찾을 수 없습니다:', typeof PDFParse)
-          throw new Error('PDFParse 클래스를 찾을 수 없습니다.')
-        }
+        // unpdf 사용 (서버리스 환경에 최적화된 PDF 파싱 라이브러리)
+        const { extractText, getDocumentProxy } = require('unpdf')
+        console.log('[analyze-file] unpdf 모듈 로드 완료')
 
         console.log('[analyze-file] PDF 파싱 실행 중...')
         
         // 타임아웃 설정
         const timeoutDuration = fileSize > 20 * 1024 * 1024 ? 120000 : 90000
         
-        // PDFParse 클래스 인스턴스 생성 및 파싱
-        const pdfParser = new PDFParse({ data: buffer })
-        const parseOptions = { max: 0, version: '1.10.100' }
+        // unpdf를 사용하여 PDF 파싱
+        const parsePromise = (async () => {
+          // Buffer를 Uint8Array로 변환
+          const uint8Array = new Uint8Array(buffer)
+          
+          // PDF 문서 로드
+          const pdf = await getDocumentProxy(uint8Array)
+          
+          // 텍스트 추출 (모든 페이지 병합)
+          const { totalPages, text } = await extractText(pdf, { mergePages: true })
+          
+          return {
+            text: text || '',
+            numpages: totalPages || 0,
+            info: {},
+            metadata: {},
+          }
+        })()
         
-        const parsePromise = pdfParser.getText(parseOptions)
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => {
             reject(new Error('PDF 파싱 시간이 초과되었습니다.'))
@@ -258,8 +238,6 @@ export async function POST(request: NextRequest) {
         const pdfData = await Promise.race([parsePromise, timeoutPromise]) as any
         console.log('[analyze-file] PDF 파싱 완료:', { 
           pages: pdfData.numpages,
-          info: pdfData.info,
-          metadata: pdfData.metadata,
           textLength: pdfData.text?.length || 0
         })
         

@@ -3,10 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   // Supabase Edge Functions는 Deno 런타임이므로 Next.js 빌드에서 제외
   webpack: (config, { isServer }) => {
-    // 서버 사이드에서 pdf-parse를 external로 설정 (번들링 제외)
+    // 서버 사이드에서 unpdf를 external로 설정 (번들링 제외)
     if (isServer) {
       config.externals = config.externals || []
-      config.externals.push('pdf-parse')
+      config.externals.push('unpdf')
     }
     return config
   },
