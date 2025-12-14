@@ -62,20 +62,22 @@ export default function FailureDetailPage() {
     }
   }
 
-  const handleFileUploadSuccess = (preview: { bullets: string[]; possibleIssues: string[] }) => {
+  const handleFileUploadSuccess = (fileUrl: string, fileName: string, fileType: string) => {
     if (!failure) return
 
     try {
       const updated = updateFailure(id, {
-        filePreview: preview,
+        fileUrl,
+        fileName,
+        fileType,
       })
 
       if (updated) {
         setFailure(updated)
       }
     } catch (error) {
-      console.error('[failure-detail] 파일 미리보기 저장 오류:', error)
-      alert('파일 미리보기 저장에 실패했습니다.')
+      console.error('[failure-detail] 파일 저장 오류:', error)
+      alert('파일 저장에 실패했습니다.')
     }
   }
 
