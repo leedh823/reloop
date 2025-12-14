@@ -224,40 +224,85 @@ export async function POST(request: NextRequest) {
           // extractText를 먼저 시도
           let fullText = ''
           try {
+            console.log('[analyze-file] extractText 호출 시작...')
             const extractResult = await extractText(pdf, { 
               mergePages: true,
-              // 모든 옵션 시도
             })
-            fullText = extractResult.text || ''
-            console.log('[analyze-file] extractText 결과:', { 
+            
+            console.log('[analyze-file] extractText 반환값 구조:', {
+              hasText: !!extractResult.text,
+              textType: typeof extractResult.text,
+              textLength: extractResult.text?.length || 0,
+              keys: Object.keys(extractResult),
+              totalPages: extractResult.totalPages
+            })
+            
+            // extractResult가 문자열일 수도 있음
+            if (typeof extractResult === 'string') {
+              fullText = extractResult
+            } else if (extractResult.text) {
+              fullText = extractResult.text
+            } else if (extractResult.pages && Array.isArray(extractResult.pages)) {
+              // pages 배열에서 텍스트 추출
+              fullText = extractResult.pages
+                .map((page: any) => page.text || '')
+                .filter((text: string) => text && text.trim().length > 0)
+                .join('\n')
+            }
+            
+            console.log('[analyze-file] extractText 최종 결과:', { 
               textLength: fullText.length,
-              totalPages: extractResult.totalPages 
+              hasText: fullText.trim().length > 0
             })
           } catch (extractError: any) {
-            console.warn('[analyze-file] extractText 실패, 페이지별 추출 시도:', extractError)
+            console.error('[analyze-file] extractText 실패:', {
+              error: extractError.message,
+              stack: extractError.stack
+            })
           }
           
           // extractText가 실패하거나 빈 텍스트면 페이지별로 추출 시도
           if (!fullText || fullText.trim().length === 0) {
             console.log('[analyze-file] 페이지별 텍스트 추출 시작...')
+            console.log('[analyze-file] pdf 객체 구조 확인:', {
+              hasGetPage: typeof pdf.getPage === 'function',
+              pdfKeys: Object.keys(pdf).slice(0, 10)
+            })
+            
             fullText = ''
             
             for (let pageNum = 1; pageNum <= numPages; pageNum++) {
               try {
+                if (typeof pdf.getPage !== 'function') {
+                  throw new Error('pdf.getPage is not a function')
+                }
+                
                 const page = await pdf.getPage(pageNum)
+                console.log(`[analyze-file] 페이지 ${pageNum} 로드 완료, getTextContent 호출...`)
+                
                 const textContent = await page.getTextContent()
+                console.log(`[analyze-file] 페이지 ${pageNum} textContent 구조:`, {
+                  hasItems: !!textContent.items,
+                  itemsLength: textContent.items?.length || 0,
+                  itemsType: Array.isArray(textContent.items) ? 'array' : typeof textContent.items
+                })
                 
                 // 텍스트 아이템들을 합치기
                 const pageText = textContent.items
                   .map((item: any) => {
-                    // item.str이 있으면 사용, 없으면 item.text 사용
-                    return item.str || item.text || ''
+                    // 다양한 필드명 시도
+                    return item.str || item.text || item.content || ''
                   })
                   .filter((text: string) => text && text.trim().length > 0)
                   .join(' ')
                 
                 if (pageText) {
                   fullText += pageText + '\n'
+                  console.log(`[analyze-file] 페이지 ${pageNum} 텍스트 추출 성공:`, { 
+                    pageTextLength: pageText.length 
+                  })
+                } else {
+                  console.warn(`[analyze-file] 페이지 ${pageNum}에서 텍스트를 찾을 수 없음`)
                 }
                 
                 if (pageNum % 5 === 0 || pageNum === numPages) {
@@ -266,7 +311,10 @@ export async function POST(request: NextRequest) {
                   })
                 }
               } catch (pageError: any) {
-                console.warn(`[analyze-file] 페이지 ${pageNum} 텍스트 추출 실패:`, pageError)
+                console.error(`[analyze-file] 페이지 ${pageNum} 텍스트 추출 실패:`, {
+                  error: pageError.message,
+                  stack: pageError.stack
+                })
                 // 페이지 추출 실패해도 계속 진행
               }
             }
