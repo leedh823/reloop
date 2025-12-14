@@ -57,7 +57,8 @@ function ProfileOnboardingContent() {
         ...profile,
         completed: true,
       })
-      router.push('/me')
+      // 프로필 완료 후 홈으로 이동
+      router.push('/home')
     }
   }
 

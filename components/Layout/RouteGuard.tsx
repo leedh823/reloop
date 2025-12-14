@@ -11,13 +11,6 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     // 클라이언트 사이드에서만 실행
     if (typeof window === 'undefined') return
 
-    // 새로고침 감지: sessionStorage에 이전 경로가 없으면 새로고침으로 간주
-    const previousPath = sessionStorage.getItem('previousPath')
-    const isRefresh = !previousPath || previousPath !== pathname
-
-    // 현재 경로 저장
-    sessionStorage.setItem('previousPath', pathname)
-
     const onboardingCompleted = localStorage.getItem('onboardingCompleted')
     const guestId = localStorage.getItem('guestId')
     
@@ -29,20 +22,20 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
       return
     }
 
-    // 루트 접근 시 스플래시로 이동
+    // 루트 접근 시
     if (pathname === '/') {
-      router.replace('/splash')
+      if (onboardingCompleted && guestId) {
+        // 온보딩과 로그인 완료 시 홈으로 이동
+        router.replace('/home')
+      } else {
+        // 미완료 시 스플래시로 이동
+        router.replace('/splash')
+      }
       return
     }
 
     // 프로필 온보딩 페이지는 항상 접근 가능
     if (pathname === '/profile-onboarding') {
-      return
-    }
-
-    // 새로고침 감지 시 스플래시로 이동 (스플래시, 로그인, 온보딩, 프로필 온보딩 제외)
-    if (isRefresh && !isPublicPath && onboardingCompleted && guestId) {
-      router.replace('/splash')
       return
     }
 

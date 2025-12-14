@@ -14,9 +14,27 @@ export default function SplashPage() {
       metaThemeColor.setAttribute('content', '#000000')
     }
 
-    // 2초 후 온보딩 페이지로 이동
+    // 온보딩/로그인 상태 확인
+    const onboardingCompleted = localStorage.getItem('onboardingCompleted')
+    const guestId = localStorage.getItem('guestId')
+    const profile = localStorage.getItem('reloop_profile')
+    const profileData = profile ? JSON.parse(profile) : null
+
+    // 2초 후 적절한 페이지로 이동
     const timer = setTimeout(() => {
-      router.push('/onboarding')
+      if (onboardingCompleted && guestId && profileData?.completed) {
+        // 모든 온보딩 완료: 홈으로
+        router.push('/home')
+      } else if (onboardingCompleted && guestId) {
+        // 프로필 미완료: 프로필 온보딩으로
+        router.push('/profile-onboarding')
+      } else if (onboardingCompleted) {
+        // 로그인 미완료: 로그인으로
+        router.push('/login')
+      } else {
+        // 온보딩 미완료: 온보딩으로
+        router.push('/onboarding')
+      }
     }, 2000)
 
     return () => clearTimeout(timer)
