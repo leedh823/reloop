@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { PrimaryButton } from '@/components/UI/Button'
 
 interface OnboardingStep {
@@ -12,18 +13,18 @@ interface OnboardingStep {
 
 const onboardingSteps: OnboardingStep[] = [
   {
-    title: '공강시간에 원하는 모임 만들기',
-    description: '공강이라는 공백, 어떻게 채우고 있나요?\n이제 같은 캠퍼스 친구들과 특별하게 채워보세요.',
+    title: '실패는 멈춤이 아니에요',
+    description: '누구나 넘어질 수 있어요.\n중요한 건 다시 시작할 수 있다는 것.',
     imagePlaceholder: '일러스트레이션 1',
   },
   {
-    title: '모임 신청하고 함께 활동하기',
-    description: '채우기 탭에서 원하는 모임을 신청하고,\n0이었던 공백을 100으로 알차게 채워보세요!',
+    title: '실패를 나누면, 혼자가 아니게 돼요',
+    description: '같은 경험을 한 사람들의 공감과 조언이 힘이 돼요.',
     imagePlaceholder: '일러스트레이션 2',
   },
   {
-    title: '스페이스에서 모임 멤버와 대화하기',
-    description: '공백을 함께 채울 멤버들과 스페이스에서\n대화하며 모임을 준비해보세요!',
+    title: '실패를 나누면, 혼자가 아니게 돼요',
+    description: '같은 경험을 한 사람들의 공감과 조언이 힘이 돼요.',
     imagePlaceholder: '일러스트레이션 3',
   },
 ]
@@ -51,89 +52,96 @@ export default function OnboardingPage() {
     }
   }
 
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
-    } else {
-      router.back()
-    }
+  const handleSkip = () => {
+    localStorage.setItem('onboardingCompleted', 'true')
+    router.push('/home')
   }
 
   const currentStepData = onboardingSteps[currentStep]
   const isLastStep = currentStep === totalSteps - 1
+  const showSkip = currentStep > 0 // 2, 3번째 스텝에만 건너뛰기 표시
 
   return (
     <div className="h-screen w-full bg-white flex flex-col overflow-hidden safe-area-top safe-area-bottom">
-      {/* 상단: 뒤로가기 버튼 */}
+      {/* 상단: 로고 + Progress Dots + 건너뛰기 */}
       <header className="flex-shrink-0 px-4 pt-6 pb-4">
-        <button
-          onClick={handleBack}
-          className="p-2 -ml-2"
-          aria-label="뒤로가기"
-        >
-          <span className="text-2xl text-black">←</span>
-        </button>
-      </header>
-
-      {/* 중앙: 타이틀 + 일러스트레이션 + 설명 */}
-      <main className="flex-1 flex flex-col px-4 min-h-0 overflow-y-auto">
-        <div className="w-full max-w-sm mx-auto flex flex-col space-y-8 py-8">
-          {/* 타이틀 */}
-          <div className="space-y-4">
-            <h1 className="text-xl font-bold text-black leading-tight">
-              {currentStepData.title}
-            </h1>
+        <div className="flex items-center justify-between mb-3">
+          {/* 로고 */}
+          <div className="flex items-center">
+            <Image
+              src="/images/logo2.png"
+              alt="Reloop"
+              width={100}
+              height={32}
+              className="h-8 w-auto"
+              priority
+            />
           </div>
 
+          {/* 건너뛰기 버튼 (2, 3번째 스텝에만) */}
+          {showSkip && (
+            <button
+              onClick={handleSkip}
+              className="text-gray-500 text-sm font-medium"
+            >
+              건너뛰기
+            </button>
+          )}
+        </div>
+
+        {/* Progress Dots */}
+        <div className="flex items-center justify-center space-x-2">
+          {onboardingSteps.map((_, index) => (
+            <div
+              key={index}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === currentStep
+                  ? 'bg-reloop-blue w-6'
+                  : index < currentStep
+                  ? 'bg-reloop-blue/50 w-2'
+                  : 'bg-gray-300 w-2'
+              }`}
+            />
+          ))}
+        </div>
+      </header>
+
+      {/* 중앙: 일러스트레이션 */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 overflow-hidden bg-white">
+        <div className="w-full max-w-sm flex flex-col items-center justify-center space-y-8">
           {/* 이미지 영역 - 네모 박스 placeholder */}
           <div 
             key={`image-${currentStep}`}
-            className="flex items-center justify-center w-full aspect-square max-w-[280px] mx-auto bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg animate-fade-in"
+            className="flex items-center justify-center w-full aspect-square max-w-[280px] bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg animate-fade-in"
           >
             <span className="text-gray-400 text-sm">{currentStepData.imagePlaceholder}</span>
           </div>
 
-          {/* 설명 텍스트 */}
+          {/* 텍스트 영역 - 이미지 아래 */}
           <div 
             key={`text-${currentStep}`}
-            className="w-full space-y-2 animate-fade-in"
+            className="w-full space-y-3 text-center animate-fade-in"
           >
-            <p className="text-base text-black leading-relaxed whitespace-pre-line">
+            <h1 className="text-2xl font-bold text-reloop-blue leading-tight">
+              {currentStepData.title}
+            </h1>
+            <p className="text-base text-gray-600 leading-relaxed whitespace-pre-line">
               {currentStepData.description}
             </p>
           </div>
         </div>
       </main>
 
-      {/* 하단: Progress Dots + CTA 버튼 */}
-      <footer className="flex-shrink-0 px-4 pb-8 pt-4 safe-area-bottom">
-        <div className="w-full max-w-sm mx-auto space-y-4">
-          {/* Progress Dots */}
-          <div className="flex items-center justify-center space-x-2">
-            {onboardingSteps.map((_, index) => (
-              <div
-                key={index}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  index === currentStep
-                    ? 'bg-reloop-blue w-6'
-                    : index < currentStep
-                    ? 'bg-reloop-blue/50 w-2'
-                    : 'bg-gray-300 w-2'
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* CTA 버튼 */}
-          <PrimaryButton
-            onClick={handleNext}
-            fullWidth
-            rounded="lg"
-            className="h-12 min-h-[48px] text-base font-semibold"
-          >
-            {isLastStep ? '시작하기' : '다음'}
-          </PrimaryButton>
-        </div>
+      {/* 하단: CTA 버튼 */}
+      <footer className="flex-shrink-0 px-4 pb-8 safe-area-bottom">
+        <PrimaryButton
+          onClick={handleNext}
+          fullWidth
+          rounded="lg"
+          className="h-12 min-h-[48px] text-base font-semibold"
+        >
+          {isLastStep ? '시작하기' : '다음'}
+        </PrimaryButton>
       </footer>
     </div>
   )

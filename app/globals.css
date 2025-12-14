@@ -21,7 +21,7 @@ html {
 
 body {
   color: #F5F5F5;
-  background: #000000;
+  background: #FFFFFF; /* 웹에서 앱 화면 주변 여백을 흰색으로 */
   /* 모바일에서 주소창이 덜 거슬리게 */
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
@@ -35,13 +35,37 @@ body {
   overflow: hidden;
   /* 텍스트 선택 방지 (선택적) */
   -webkit-tap-highlight-color: transparent;
+  /* 웹에서 앱 화면 중앙 정렬 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 앱 컨테이너 */
+/* 앱 컨테이너 - 모바일 크기로 제한 */
 #__next,
 [data-nextjs-scroll-focus-boundary] {
   height: 100%;
   overflow: hidden;
+  width: 100%;
+  max-width: 428px; /* iPhone 14 Pro Max 기준 */
+  margin: 0 auto;
+  background: #FFFFFF;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 데스크탑에서만 앱 테두리 적용 */
+@media (min-width: 768px) {
+  #__next,
+  [data-nextjs-scroll-focus-boundary] {
+    border: 8px solid #000000;
+    border-radius: 24px;
+    margin: 20px auto;
+    height: calc(100vh - 40px);
+    max-height: 926px; /* iPhone 14 Pro Max 높이 */
+  }
 }
 
 /* iOS Safe Area 대응 */
