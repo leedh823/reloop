@@ -223,16 +223,20 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // pdf-parse를 함수로 직접 사용 (클래스가 아닌)
-        const pdfParse = require('pdf-parse')
+        // pdf-parse 모듈 로드 (DOMMatrix 폴리필이 이미 설정됨)
+        const pdfParseModule = require('pdf-parse')
         console.log('[analyze-file] pdf-parse 모듈 로드 완료:', { 
-          type: typeof pdfParse,
+          hasPDFParse: !!pdfParseModule.PDFParse,
+          PDFParseType: typeof pdfParseModule.PDFParse,
           hasDOMMatrix: typeof globalThis.DOMMatrix !== 'undefined'
         })
 
-        // pdf-parse는 함수로 직접 사용
-        if (typeof pdfParse !== 'function') {
-          throw new Error('pdf-parse가 함수가 아닙니다.')
+        // PDFParse 클래스 사용
+        const PDFParse = pdfParseModule.PDFParse
+        
+        if (!PDFParse || typeof PDFParse !== 'function') {
+          console.error('[analyze-file] PDFParse 클래스를 찾을 수 없습니다:', typeof PDFParse)
+          throw new Error('PDFParse 클래스를 찾을 수 없습니다.')
         }
 
         console.log('[analyze-file] PDF 파싱 실행 중...')
@@ -240,10 +244,11 @@ export async function POST(request: NextRequest) {
         // 타임아웃 설정
         const timeoutDuration = fileSize > 20 * 1024 * 1024 ? 120000 : 90000
         
-        // pdf-parse 함수 직접 호출
-        const parsePromise = pdfParse(buffer, {
-          max: 0, // 모든 페이지
-        })
+        // PDFParse 클래스 인스턴스 생성 및 파싱
+        const pdfParser = new PDFParse({ data: buffer })
+        const parseOptions = { max: 0, version: '1.10.100' }
+        
+        const parsePromise = pdfParser.getText(parseOptions)
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => {
             reject(new Error('PDF 파싱 시간이 초과되었습니다.'))
