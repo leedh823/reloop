@@ -8,6 +8,7 @@ import FailureDetailHeader from '@/components/Failures/FailureDetailHeader'
 import AISummarySection from '@/components/Failures/AISummarySection'
 import FileUploadSection from '@/components/Failures/FileUploadSection'
 import CommentDrawer from '@/components/Failures/CommentDrawer'
+import ChatPanel from '@/components/AI/ChatPanel'
 import ConfirmModal from '@/components/UI/ConfirmModal'
 import { getCategoryLabel } from '@/lib/constants/categories'
 import { getEmotionLabel } from '@/lib/constants/emotions'
@@ -24,6 +25,7 @@ export default function FailureDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isCommentDrawerOpen, setIsCommentDrawerOpen] = useState(false)
+  const [isChatPanelOpen, setIsChatPanelOpen] = useState(false)
   const [isAuthor, setIsAuthor] = useState(false)
 
   useEffect(() => {
@@ -374,8 +376,28 @@ export default function FailureDetailPage() {
               />
             )}
 
-            {/* AI 분석 섹션 */}
-            <AISummarySection failure={failure} />
+            {/* AI 분석 섹션 (작성자만) 또는 채팅 기능 (남의 게시물) */}
+            {isAuthor ? (
+              <AISummarySection failure={failure} />
+            ) : (
+              <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-6">
+                <div className="mb-4">
+                  <span className="text-4xl">💬</span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  감정 정리하기
+                </h3>
+                <p className="text-sm text-[#B3B3B3] mb-6">
+                  이 실패 경험에 대해 이야기하고 감정을 정리해보세요.
+                </p>
+                <button
+                  onClick={() => setIsChatPanelOpen(true)}
+                  className="w-full min-h-[48px] bg-reloop-blue text-white rounded-lg font-medium hover:bg-reloop-blue/90 transition-colors"
+                >
+                  대화 시작하기
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -398,6 +420,16 @@ export default function FailureDetailPage() {
         comments={failure?.comments || []}
         onAddComment={handleAddComment}
       />
+
+      {/* 채팅 패널 (남의 게시물용) */}
+      {!isAuthor && failure && (
+        <ChatPanel
+          isOpen={isChatPanelOpen}
+          onClose={() => setIsChatPanelOpen(false)}
+          failureSummary={failure.summary}
+          emotionTag={failure.emotion}
+        />
+      )}
     </div>
   )
 }

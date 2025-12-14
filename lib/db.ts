@@ -8,19 +8,19 @@ import { Failure } from '@/types/failure';
  */
 let failures: Failure[] = [];
 
-// 더미 계정 정보
+// 더미 계정 정보 (5개 고정)
 const dummyUsers = [
   { id: 'dummy_user_1', name: '민수', avatarId: '프로필 1.png' },
   { id: 'dummy_user_2', name: '지영', avatarId: '프로필 2.png' },
-  { id: 'dummy_user_3', name: '현우', avatarId: '프로필 3.png' },
+  { id: 'dummy_user_3', name: '현우', avatarId: '프로필3.png' },
   { id: 'dummy_user_4', name: '수진', avatarId: '프로필 4.png' },
   { id: 'dummy_user_5', name: '준호', avatarId: '프로필 5.png' },
 ]
 
-// 더미 이미지 URL (실제 프로필 이미지 사용)
+// 더미 이미지 URL (더미1.png~더미6.png 사용)
 const getDummyImageUrl = (index: number) => {
-  const imageNames = ['프로필 1.png', '프로필 2.png', '프로필3.png', '프로필 4.png', '프로필 5.png']
-  return `/images/${imageNames[index] || '프로필 1.png'}`
+  const imageNames = ['더미1.png', '더미2.png', '더미3.png', '더미4.png', '더미5.png', '더미6.png']
+  return `/images/${imageNames[index] || '더미1.png'}`
 }
 
 // 더미 데이터 초기화 (서버 시작 시)

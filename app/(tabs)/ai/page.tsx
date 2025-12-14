@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import AppShell from '@/components/Layout/AppShell'
 import { PrimaryButton } from '@/components/UI/Button'
-import { getFailureById } from '@/lib/storage/failures'
+// API를 통해 서버에서 데이터 가져오기
 import { generateMockAnalyzeResult, MockAnalyzeResult } from '@/lib/ai/mockAnalyze'
 import AnalyzeInput from '@/components/AI/AnalyzeInput'
 import AnalyzeProgress from '@/components/AI/AnalyzeProgress'
@@ -29,35 +29,46 @@ function AIPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [hasFileUploaded, setHasFileUploaded] = useState(false)
 
-  // failureId가 있으면 해당 failure 로드
+  // failureId가 있으면 해당 failure 로드 (API에서 가져오기)
   useEffect(() => {
     if (failureId) {
-      try {
-        const loadedFailure = getFailureById(failureId)
-        if (!loadedFailure) {
-          setError('기록을 찾을 수 없어요')
+      const loadFailure = async () => {
+        try {
+          const response = await fetch(`/api/failures/${failureId}`)
+          if (!response.ok) {
+            setError('기록을 찾을 수 없어요')
+            setLoading(false)
+            return
+          }
+          const loadedFailure = await response.json()
+          setFailure(loadedFailure)
+          // 입력 텍스트 자동 채움
+          const combinedText = [
+            loadedFailure.summary,
+            loadedFailure.detail,
+          ].filter(Boolean).join('\n\n')
+          setInputText(combinedText)
+          // 텍스트가 있으면 분석 가능하도록 설정
+          if (combinedText.trim()) {
+            setHasFileUploaded(false) // 텍스트 입력이므로 파일 업로드 플래그는 false
+          }
+          if (loadedFailure.category) {
+            setSelectedCategory(loadedFailure.category)
+          }
+          if (loadedFailure.emotion) {
+            setSelectedEmotion(loadedFailure.emotion)
+          }
+        } catch (err) {
+          console.error('[ai] Failure 로드 오류:', err)
+          setError('기록을 불러오는 중 오류가 발생했습니다.')
+        } finally {
           setLoading(false)
-          return
         }
-        setFailure(loadedFailure)
-        // 입력 텍스트 자동 채움
-        const combinedText = [
-          loadedFailure.summary,
-          loadedFailure.detail,
-        ].filter(Boolean).join('\n\n')
-        setInputText(combinedText)
-        if (loadedFailure.category) {
-          setSelectedCategory(loadedFailure.category)
-        }
-        if (loadedFailure.emotion) {
-          setSelectedEmotion(loadedFailure.emotion)
-        }
-      } catch (err) {
-        console.error('[ai] Failure 로드 오류:', err)
-        setError('기록을 불러오는 중 오류가 발생했습니다.')
       }
+      loadFailure()
+    } else {
+      setLoading(false)
     }
-    setLoading(false)
   }, [failureId])
 
   const handleAnalyze = async () => {
@@ -153,7 +164,21 @@ function AIPageContent() {
         {failure && (
           <div className="mb-4 p-3 bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg">
             <p className="text-xs text-[#777777] mb-1">선택된 기록</p>
-            <p className="text-sm text-white font-medium">{failure.title}</p>
+            <p className="text-sm text-white font-medium mb-2">{failure.title}</p>
+            {/* 첫 번째 이미지 표시 */}
+            {failure.images && failure.images.length > 0 && (
+              <div className="mt-3 rounded-lg overflow-hidden">
+                <img
+                  src={failure.images[0].url}
+                  alt={failure.images[0].fileName || '첨부 이미지'}
+                  className="w-full h-auto object-contain max-h-48"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
 
