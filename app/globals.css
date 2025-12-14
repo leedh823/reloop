@@ -9,8 +9,20 @@
 }
 
 body {
-  color: #1a1a1a;
-  background: #ffffff;
+  color: #F5F5F5;
+  background: #000000;
+  /* 모바일에서 주소창이 덜 거슬리게 */
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS Safe Area 대응 */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* 스크롤바 숨김 */
@@ -21,5 +33,43 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
+}
+
+/* 모바일 터치 최적화 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 입력 요소 최소 크기 (44px) - 단, 링크는 예외 */
+button, select, textarea {
+  min-height: 44px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="url"],
+input[type="file"] {
+  min-height: 44px;
+}
+
+/* 모바일 좌우 스크롤 방지 */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* 컨테이너 최대 너비 제한 */
+.container, main, section {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 텍스트 선택 방지 (선택적) */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
