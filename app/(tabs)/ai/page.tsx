@@ -208,12 +208,6 @@ function AIPageContent() {
                 setHasFileUploaded(true)
                 setInputMode('file') // 파일 업로드 모드로 설정
               }}
-              onInputModeChange={(mode) => {
-                setInputMode(mode)
-                if (mode === 'text') {
-                  setHasFileUploaded(false) // 텍스트 모드로 전환 시 파일 업로드 플래그 초기화
-                }
-              }}
             />
 
             <div className="pt-4">
