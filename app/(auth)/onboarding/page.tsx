@@ -68,14 +68,7 @@ export default function OnboardingPage() {
         <div className="flex items-center justify-between mb-3">
           {/* 로고 */}
           <div className="flex items-center">
-            <Image
-              src="/images/logo2.png"
-              alt="Reloop"
-              width={100}
-              height={32}
-              className="h-8 w-auto"
-              priority
-            />
+            <span className="text-xl font-bold text-reloop-blue">Reloop</span>
           </div>
 
           {/* 건너뛰기 버튼 (2, 3번째 스텝에만) */}
