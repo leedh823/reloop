@@ -8,6 +8,7 @@ import ApiHostConfig from '@/components/AI/ApiHostConfig'
 import { EMOTIONS, MAX_PDF_SIZE_BYTES, MAX_OTHER_FILE_SIZE_BYTES, MAX_PDF_SIZE_MB, MAX_OTHER_FILE_SIZE_MB } from '@/lib/constants'
 import { PrimaryButton } from '@/components/UI/Button'
 import { getApiUrl } from '@/lib/utils/api'
+import { createMultipartUploader, completeMultipartUpload } from '@vercel/blob/client'
 
 export default function AiOnboardingAndChatPage() {
   const [file, setFile] = useState<File | null>(null)
@@ -114,10 +115,20 @@ export default function AiOnboardingAndChatPage() {
           throw new Error(errorData.error || '업로드 시작 실패')
         }
 
-        const { uploadId, key, totalParts, partSize } = await uploadStartResponse.json()
-        console.log('[handleAnalyze] 멀티파트 업로드 시작:', { uploadId, key, totalParts, partSize })
+        const { uploadId, key, totalParts, partSize, clientToken } = await uploadStartResponse.json()
+        console.log('[handleAnalyze] 멀티파트 업로드 시작:', { uploadId, key, totalParts, partSize, hasClientToken: !!clientToken })
 
-        // 2. 파일을 청크로 나눠서 각 파트를 서버를 통해 업로드
+        // 2. 클라이언트에서 직접 Blob에 업로드 (서버를 거치지 않음)
+        // createMultipartUploader를 사용하여 클라이언트에서 직접 업로드
+        const uploader = await createMultipartUploader(file.name, {
+          access: 'public',
+          contentType: file.type || 'application/octet-stream',
+          token: clientToken, // 서버에서 생성한 클라이언트 토큰 사용
+        })
+
+        console.log('[handleAnalyze] 멀티파트 업로더 생성 완료:', { uploadId: uploader.uploadId, key: uploader.key })
+
+        // 파일을 청크로 나눠서 각 파트를 클라이언트에서 직접 업로드
         const uploadedParts: Array<{ partNumber: number; etag: string }> = []
         
         for (let i = 0; i < totalParts; i++) {
@@ -126,37 +137,12 @@ export default function AiOnboardingAndChatPage() {
           // 마지막 파트는 파일 끝까지
           const end = i === totalParts - 1 ? file.size : Math.min(start + partSize, file.size)
           const chunk = file.slice(start, end)
-          
-          // 파트 크기 확인
-          if (chunk.size > 4 * 1024 * 1024) {
-            console.warn(`[handleAnalyze] 경고: 파트 ${partNumber}이 4MB를 초과합니다:`, chunk.size)
-          }
-          
-          // 마지막 파트가 너무 작으면 경고 (하지만 업로드는 시도)
-          if (i === totalParts - 1 && chunk.size < 1 * 1024 * 1024) {
-            console.warn(`[handleAnalyze] 경고: 마지막 파트가 1MB보다 작습니다:`, chunk.size)
-          }
 
           console.log(`[handleAnalyze] 파트 ${partNumber} 업로드 중...`, { start, end, size: chunk.size })
 
-          // 서버를 통해 파트 업로드 (각 파트는 4MB 이하이므로 제한 없음)
-          const partFormData = new FormData()
-          partFormData.append('file', chunk)
-          partFormData.append('uploadId', uploadId)
-          partFormData.append('key', key)
-          partFormData.append('partNumber', partNumber.toString())
-
-          const partResponse = await fetch(uploadStartUrl, {
-            method: 'POST',
-            body: partFormData,
-          })
-
-          if (!partResponse.ok) {
-            const errorData = await partResponse.json().catch(() => ({}))
-            throw new Error(errorData.error || `파트 ${partNumber} 업로드 실패`)
-          }
-
-          const { etag } = await partResponse.json()
+          // 클라이언트에서 직접 업로드 (서버를 거치지 않음)
+          const { etag } = await uploader.uploadPart(partNumber, chunk)
+          
           uploadedParts.push({
             partNumber,
             etag,
@@ -165,26 +151,15 @@ export default function AiOnboardingAndChatPage() {
           console.log(`[handleAnalyze] 파트 ${partNumber} 업로드 완료`, { etag })
         }
 
-        // 3. 멀티파트 업로드 완료
-        const uploadCompleteResponse = await fetch(uploadStartUrl, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            uploadId,
-            key,
-            parts: uploadedParts,
-          }),
+        // 3. 멀티파트 업로드 완료 (클라이언트에서 직접)
+        const blob = await completeMultipartUpload(uploader.key, uploadedParts, {
+          token: clientToken,
+          access: 'public',
+          uploadId: uploader.uploadId,
+          key: uploader.key,
         })
 
-        if (!uploadCompleteResponse.ok) {
-          const errorData = await uploadCompleteResponse.json().catch(() => ({}))
-          throw new Error(errorData.error || '업로드 완료 실패')
-        }
-
-        const { url } = await uploadCompleteResponse.json()
-        blobUrl = url
+        blobUrl = blob.url
         console.log('[handleAnalyze] 멀티파트 업로드 완료:', blobUrl)
       }
 

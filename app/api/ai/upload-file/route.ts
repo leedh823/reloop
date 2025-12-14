@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createMultipartUpload, uploadPart, completeMultipartUpload } from '@vercel/blob'
+import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client'
 
 /**
  * 멀티파트 업로드 - 파트 업로드 API
@@ -157,12 +158,21 @@ export async function PUT(request: NextRequest) {
       totalParts,
     })
 
+    // 클라이언트에서 직접 업로드할 수 있도록 클라이언트 토큰 생성
+    // 이 토큰을 사용하여 클라이언트에서 직접 Blob에 업로드 가능
+    const clientToken = generateClientTokenFromReadWriteToken({
+      token: process.env.BLOB_READ_WRITE_TOKEN!,
+      pathname: key,
+      allowedContentTypes: [contentType || 'application/octet-stream'],
+    })
+
     return NextResponse.json({
       success: true,
       uploadId,
       key,
       totalParts,
       partSize,
+      clientToken, // 클라이언트에서 직접 업로드할 수 있는 토큰
     })
   } catch (error: any) {
     console.error('[upload-file] 멀티파트 업로드 시작 오류:', error)
