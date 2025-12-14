@@ -64,9 +64,9 @@ export default function OnboardingPage() {
   const showSkip = currentStep > 0 // 2, 3번째 스텝에만 건너뛰기 표시
 
   return (
-    <div className="h-screen w-full bg-white flex flex-col overflow-hidden safe-area-top safe-area-bottom">
+    <div className="min-h-screen bg-white flex flex-col px-4 safe-area-top safe-area-bottom">
       {/* 상단: 로고 + Progress Dots + 건너뛰기 */}
-      <header className="flex-shrink-0 px-4 pt-6 pb-4">
+      <header className="flex-shrink-0 pt-6 pb-4">
         <div className="flex items-center justify-between mb-3">
           {/* 로고 */}
           <div className="flex items-center">
@@ -109,7 +109,7 @@ export default function OnboardingPage() {
       </header>
 
       {/* 중앙: 일러스트레이션 */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 overflow-hidden bg-white">
+      <main className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-hidden bg-white">
         <div className="w-full max-w-sm flex flex-col items-center justify-center space-y-8">
           {/* 이미지 영역 */}
           <div 
@@ -141,13 +141,13 @@ export default function OnboardingPage() {
         </div>
       </main>
 
-      {/* 하단: CTA 버튼 */}
-      <footer className="flex-shrink-0 px-4 pb-6 pt-2 safe-area-bottom">
+      {/* 하단: CTA 버튼 (로그인 페이지와 동일한 위치) */}
+      <footer className="flex-shrink-0 pb-8">
         <PrimaryButton
           onClick={handleNext}
           fullWidth
           rounded="lg"
-          className="h-12 min-h-[48px] text-base font-semibold"
+          className="min-h-[48px] text-base font-semibold"
         >
           {isLastStep ? '시작하기' : '다음'}
         </PrimaryButton>
