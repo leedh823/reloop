@@ -30,6 +30,11 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
       return
     }
 
+    // 온보딩 페이지는 항상 접근 가능 (온보딩 완료 여부와 관계없이)
+    if (pathname === '/onboarding') {
+      return
+    }
+
     // 온보딩이 완료되지 않았으면 온보딩으로
     if (!onboardingCompleted && !isPublicPath) {
       router.replace('/onboarding')
