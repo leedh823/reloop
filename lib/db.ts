@@ -135,8 +135,10 @@ function initializeDummyData() {
   }
 }
 
-// 초기화 실행
-initializeDummyData();
+// 초기화 실행 (서버 사이드에서만)
+if (typeof window === 'undefined') {
+  initializeDummyData();
+}
 
 export function getAllFailures(): Failure[] {
   // 더미 데이터가 없으면 다시 초기화
