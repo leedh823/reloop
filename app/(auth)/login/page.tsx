@@ -62,7 +62,7 @@ export default function LoginPage() {
       <div className="flex-shrink-0 pb-8 space-y-3">
         <button
           onClick={handleKakaoLogin}
-          className="w-full min-h-[48px] bg-[#FEE500] text-black font-semibold rounded-lg flex items-center justify-center space-x-2 hover:bg-[#FEE500]/90 transition-colors"
+          className="w-full min-h-[48px] bg-[#FEE500] text-black font-semibold rounded-lg flex items-center justify-center space-x-2 hover:bg-[#FEE500]/90 transition-colors focus:outline-none active:outline-none"
         >
           <span className="text-xl">💬</span>
           <span>카카오 로그인</span>
@@ -70,7 +70,7 @@ export default function LoginPage() {
 
         <button
           onClick={handleGuestLogin}
-          className="w-full min-h-[48px] bg-white text-black font-semibold rounded-lg border border-black hover:bg-gray-100 transition-colors"
+          className="w-full min-h-[48px] bg-white text-black font-semibold rounded-lg border border-black hover:bg-gray-100 transition-colors focus:outline-none active:outline-none"
         >
           게스트로 시작하기
         </button>

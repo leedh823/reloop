@@ -147,7 +147,7 @@ export default function OnboardingPage() {
           onClick={handleNext}
           fullWidth
           rounded="lg"
-          className="min-h-[48px] text-base font-semibold"
+          className="min-h-[48px] text-base font-semibold focus:outline-none active:outline-none"
         >
           {isLastStep ? '시작하기' : '다음'}
         </PrimaryButton>
