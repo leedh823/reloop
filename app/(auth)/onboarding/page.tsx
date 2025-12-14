@@ -8,24 +8,24 @@ import { PrimaryButton } from '@/components/UI/Button'
 interface OnboardingStep {
   title: string
   description: string
-  image: string // 이미지 경로 또는 이모지
+  imagePlaceholder: string // 네모 박스 placeholder 설명
 }
 
 const onboardingSteps: OnboardingStep[] = [
   {
     title: '실패는 멈춤이 아니에요',
     description: '누구나 넘어질 수 있어요.\n중요한 건 다시 시작할 수 있다는 것.',
-    image: '/images/hero-image.png', // 일러스트레이션 이미지
+    imagePlaceholder: '일러스트레이션 1',
   },
   {
     title: '실패는 정리되지 않으면 남아요',
     description: '감정과 경험이 섞인 채로\n그냥 흘려보내지 마세요.',
-    image: '/images/hero-image.png', // 일러스트레이션 이미지
+    imagePlaceholder: '일러스트레이션 2',
   },
   {
     title: 'Reloop은 실패를 정리해줘요',
     description: '기록하고, AI로 구조화하고,\n다시 시도할 수 있게 돕습니다.',
-    image: '/images/hero-image.png', // 일러스트레이션 이미지
+    imagePlaceholder: '일러스트레이션 3',
   },
 ]
 
@@ -40,7 +40,7 @@ export default function OnboardingPage() {
     } else {
       // 마지막 step: 시작하기
       localStorage.setItem('onboardingCompleted', 'true')
-      router.push('/login')
+      router.push('/home')
     }
   }
 
@@ -85,23 +85,12 @@ export default function OnboardingPage() {
       {/* 중앙: 일러스트레이션 이미지 (큰 영역) */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 overflow-hidden bg-white">
         <div className="w-full max-w-sm flex flex-col items-center justify-center space-y-8">
-          {/* 이미지 영역 - 큰 일러스트레이션 */}
+          {/* 이미지 영역 - 네모 박스 placeholder */}
           <div 
             key={`image-${currentStep}`}
-            className="flex items-center justify-center w-full aspect-square max-w-[320px] animate-fade-in"
+            className="flex items-center justify-center w-full aspect-square max-w-[320px] bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg animate-fade-in"
           >
-            {currentStepData.image.startsWith('/') ? (
-              <Image
-                src={currentStepData.image}
-                alt={currentStepData.title}
-                width={320}
-                height={320}
-                className="w-full h-full object-contain"
-                priority={currentStep === 0}
-              />
-            ) : (
-              <div className="text-8xl">{currentStepData.image}</div>
-            )}
+            <span className="text-gray-400 text-sm">{currentStepData.imagePlaceholder}</span>
           </div>
 
           {/* 텍스트 영역 - 이미지 아래 */}

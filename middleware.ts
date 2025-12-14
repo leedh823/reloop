@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // 공개 경로 (라우팅 가드 제외)
-  const publicPaths = ['/onboarding', '/login', '/api']
+  const publicPaths = ['/splash', '/onboarding', '/login', '/api']
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
   
   if (isPublicPath) {
