@@ -91,10 +91,90 @@ export default function AiOnboardingAndChatPage() {
     try {
       let blobUrl: string | null = null
 
-      // 파일 크기가 4MB 이상이면 에러 (현재는 4MB 제한)
-      // TODO: 향후 멀티파트 업로드 또는 다른 방법으로 대용량 파일 지원
+      // 파일 크기가 4MB 이상이면 멀티파트 업로드 사용
       if (file.size > 4 * 1024 * 1024) {
-        throw new Error(`파일이 너무 큽니다 (${(file.size / (1024 * 1024)).toFixed(1)}MB). 현재는 4MB 이하 파일만 지원합니다.\n\nVercel의 4.5MB 제한으로 인해 대용량 파일 업로드는 아직 지원되지 않습니다.`)
+        console.log('[handleAnalyze] 파일이 4MB 이상이므로 멀티파트 업로드 사용:', { fileSize: file.size })
+        
+        // 1. 멀티파트 업로드 시작
+        const uploadStartUrl = getApiUrl('/api/ai/upload-file')
+        const uploadStartResponse = await fetch(uploadStartUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type || 'application/octet-stream',
+            fileSize: file.size,
+          }),
+        })
+
+        if (!uploadStartResponse.ok) {
+          const errorData = await uploadStartResponse.json().catch(() => ({}))
+          throw new Error(errorData.error || '업로드 시작 실패')
+        }
+
+        const { uploadId, key, totalParts, partSize } = await uploadStartResponse.json()
+        console.log('[handleAnalyze] 멀티파트 업로드 시작:', { uploadId, key, totalParts, partSize })
+
+        // 2. 파일을 청크로 나눠서 각 파트를 서버를 통해 업로드
+        const uploadedParts: Array<{ partNumber: number; etag: string }> = []
+        
+        for (let i = 0; i < totalParts; i++) {
+          const partNumber = i + 1
+          const start = i * partSize
+          const end = Math.min(start + partSize, file.size)
+          const chunk = file.slice(start, end)
+
+          console.log(`[handleAnalyze] 파트 ${partNumber} 업로드 중...`, { start, end, size: chunk.size })
+
+          // 서버를 통해 파트 업로드 (각 파트는 4MB 이하이므로 제한 없음)
+          const partFormData = new FormData()
+          partFormData.append('file', chunk)
+          partFormData.append('uploadId', uploadId)
+          partFormData.append('key', key)
+          partFormData.append('partNumber', partNumber.toString())
+
+          const partResponse = await fetch(uploadStartUrl, {
+            method: 'POST',
+            body: partFormData,
+          })
+
+          if (!partResponse.ok) {
+            const errorData = await partResponse.json().catch(() => ({}))
+            throw new Error(errorData.error || `파트 ${partNumber} 업로드 실패`)
+          }
+
+          const { etag } = await partResponse.json()
+          uploadedParts.push({
+            partNumber,
+            etag,
+          })
+
+          console.log(`[handleAnalyze] 파트 ${partNumber} 업로드 완료`, { etag })
+        }
+
+        // 3. 멀티파트 업로드 완료
+        const uploadCompleteResponse = await fetch(uploadStartUrl, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uploadId,
+            key,
+            parts: uploadedParts,
+          }),
+        })
+
+        if (!uploadCompleteResponse.ok) {
+          const errorData = await uploadCompleteResponse.json().catch(() => ({}))
+          throw new Error(errorData.error || '업로드 완료 실패')
+        }
+
+        const { url } = await uploadCompleteResponse.json()
+        blobUrl = url
+        console.log('[handleAnalyze] 멀티파트 업로드 완료:', blobUrl)
       }
 
       // 분석 API 호출
@@ -248,7 +328,7 @@ export default function AiOnboardingAndChatPage() {
                         txt, md, pdf, docx (최대 {MAX_PDF_SIZE_MB}MB)
                       </p>
                       <p className="text-gray-500 text-xs mt-1">
-                        ※ Vercel 제한으로 4MB 이하만 업로드 가능합니다
+                        ※ 4MB 이상 파일은 자동으로 멀티파트 업로드됩니다
                       </p>
                     </div>
                     <button
