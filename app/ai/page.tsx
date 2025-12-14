@@ -91,29 +91,10 @@ export default function AiOnboardingAndChatPage() {
     try {
       let blobUrl: string | null = null
 
-      // 파일 크기가 4MB 이상이면 Blob에 업로드
+      // 파일 크기가 4MB 이상이면 에러 (현재는 4MB 제한)
+      // TODO: 향후 멀티파트 업로드 또는 다른 방법으로 대용량 파일 지원
       if (file.size > 4 * 1024 * 1024) {
-        console.log('[handleAnalyze] 파일이 4MB 이상이므로 Blob에 업로드:', { fileSize: file.size })
-        
-        const uploadFormData = new FormData()
-        uploadFormData.append('file', file)
-        
-        const uploadUrl = getApiUrl('/api/ai/upload-file')
-        console.log('[handleAnalyze] Blob 업로드 시작:', uploadUrl)
-        
-        const uploadResponse = await fetch(uploadUrl, {
-          method: 'POST',
-          body: uploadFormData,
-        })
-        
-        if (!uploadResponse.ok) {
-          const uploadError = await uploadResponse.json().catch(() => ({}))
-          throw new Error(uploadError.error || '파일 업로드 실패')
-        }
-        
-        const uploadData = await uploadResponse.json()
-        blobUrl = uploadData.url
-        console.log('[handleAnalyze] Blob 업로드 완료:', blobUrl)
+        throw new Error(`파일이 너무 큽니다 (${(file.size / (1024 * 1024)).toFixed(1)}MB). 현재는 4MB 이하 파일만 지원합니다.\n\nVercel의 4.5MB 제한으로 인해 대용량 파일 업로드는 아직 지원되지 않습니다.`)
       }
 
       // 분석 API 호출
@@ -267,7 +248,7 @@ export default function AiOnboardingAndChatPage() {
                         txt, md, pdf, docx (최대 {MAX_PDF_SIZE_MB}MB)
                       </p>
                       <p className="text-gray-500 text-xs mt-1">
-                        ※ 4MB 이상 파일은 자동으로 Blob 스토리지를 통해 업로드됩니다
+                        ※ Vercel 제한으로 4MB 이하만 업로드 가능합니다
                       </p>
                     </div>
                     <button
