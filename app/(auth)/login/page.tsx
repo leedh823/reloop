@@ -21,8 +21,11 @@ export default function LoginPage() {
     const guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
     localStorage.setItem('guestId', guestId)
     
-    // 홈으로 이동
-    router.push('/home')
+    // 프로필 초기화 (작성한 글은 유지)
+    clearProfile()
+    
+    // 프로필 온보딩으로 이동
+    router.push('/profile-onboarding')
   }
 
   const handleKakaoLogin = () => {
