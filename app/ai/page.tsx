@@ -116,7 +116,12 @@ export default function AiOnboardingAndChatPage() {
         }
 
         const { uploadId, key, totalParts, partSize, clientToken } = await uploadStartResponse.json()
-        console.log('[handleAnalyze] 멀티파트 업로드 시작:', { uploadId, key, totalParts, partSize, hasClientToken: !!clientToken })
+        console.log('[handleAnalyze] 멀티파트 업로드 시작:', { uploadId, key, totalParts, partSize, hasClientToken: !!clientToken, clientTokenType: typeof clientToken })
+
+        // clientToken 검증
+        if (!clientToken || typeof clientToken !== 'string') {
+          throw new Error('클라이언트 토큰을 받지 못했습니다. 서버 설정을 확인해주세요.')
+        }
 
         // 2. 클라이언트에서 직접 Blob에 업로드 (서버를 거치지 않음)
         // createMultipartUploader를 사용하여 클라이언트에서 직접 업로드
@@ -152,6 +157,10 @@ export default function AiOnboardingAndChatPage() {
         }
 
         // 3. 멀티파트 업로드 완료 (클라이언트에서 직접)
+        if (!clientToken || typeof clientToken !== 'string') {
+          throw new Error('클라이언트 토큰이 유효하지 않습니다.')
+        }
+
         const blob = await completeMultipartUpload(uploader.key, uploadedParts, {
           token: clientToken,
           access: 'public',

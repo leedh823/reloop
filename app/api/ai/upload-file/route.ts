@@ -160,11 +160,30 @@ export async function PUT(request: NextRequest) {
 
     // 클라이언트에서 직접 업로드할 수 있도록 클라이언트 토큰 생성
     // 이 토큰을 사용하여 클라이언트에서 직접 Blob에 업로드 가능
-    const clientToken = generateClientTokenFromReadWriteToken({
-      token: process.env.BLOB_READ_WRITE_TOKEN!,
-      pathname: key,
-      allowedContentTypes: [contentType || 'application/octet-stream'],
-    })
+    let clientToken: string | undefined = undefined
+    
+    try {
+      if (!process.env.BLOB_READ_WRITE_TOKEN) {
+        console.error('[upload-file] BLOB_READ_WRITE_TOKEN이 설정되지 않았습니다.')
+        throw new Error('BLOB_READ_WRITE_TOKEN이 설정되지 않았습니다.')
+      }
+
+      clientToken = await generateClientTokenFromReadWriteToken({
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+        pathname: key,
+        allowedContentTypes: [contentType || 'application/octet-stream'],
+      })
+
+      console.log('[upload-file] 클라이언트 토큰 생성 성공:', { 
+        hasToken: !!clientToken, 
+        tokenType: typeof clientToken,
+        tokenLength: clientToken?.length 
+      })
+    } catch (tokenError: any) {
+      console.error('[upload-file] 클라이언트 토큰 생성 실패:', tokenError)
+      // 토큰 생성 실패 시에도 업로드는 계속 진행 (서버를 통한 업로드로 폴백)
+      // 하지만 클라이언트에서 직접 업로드를 시도하면 실패할 수 있음
+    }
 
     return NextResponse.json({
       success: true,
@@ -172,7 +191,7 @@ export async function PUT(request: NextRequest) {
       key,
       totalParts,
       partSize,
-      clientToken, // 클라이언트에서 직접 업로드할 수 있는 토큰
+      clientToken: clientToken || null, // 클라이언트에서 직접 업로드할 수 있는 토큰
     })
   } catch (error: any) {
     console.error('[upload-file] 멀티파트 업로드 시작 오류:', error)
