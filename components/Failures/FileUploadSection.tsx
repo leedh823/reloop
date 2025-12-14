@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 
 interface FileUploadSectionProps {
-  onUploadSuccess: (preview: { bullets: string[]; possibleIssues: string[] }) => void
+  onUploadSuccess: (fileUrl: string, fileName: string, fileType: string) => void
   onUploadError: (error: string) => void
   disabled?: boolean
 }
@@ -74,31 +74,8 @@ export default function FileUploadSection({
         throw new Error('파일 업로드 실패')
       }
 
-      // 3. 파일 파싱 요청 (R2 URL 사용 - 파일은 전송하지 않음)
-      const parseFormData = new FormData()
-      parseFormData.append('blobUrl', publicUrl)
-      parseFormData.append('fileKey', key)
-      // 파일은 전송하지 않음 (R2에서 다운로드)
-
-      const parseResponse = await fetch('/api/files/parse', {
-        method: 'POST',
-        body: parseFormData,
-      })
-
-      // 응답이 JSON인지 확인
-      const contentType = parseResponse.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await parseResponse.text()
-        throw new Error(`서버 오류 (${parseResponse.status}): ${text.substring(0, 200)}`)
-      }
-
-      const parseData = await parseResponse.json()
-
-      if (!parseResponse.ok || !parseData.ok) {
-        throw new Error(parseData.error || '파일 파싱에 실패했습니다.')
-      }
-
-      onUploadSuccess(parseData.structuredPreview)
+      // 3. 파일 URL과 정보를 전달 (텍스트 추출 없이 바로 표시)
+      onUploadSuccess(publicUrl, file.name, file.type || (fileExtension === 'pdf' ? 'application/pdf' : 'text/plain'))
     } catch (error: any) {
       console.error('[FileUploadSection] 업로드 오류:', error)
       onUploadError(error?.message || '파일 업로드 중 오류가 발생했습니다.')

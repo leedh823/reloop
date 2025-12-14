@@ -83,21 +83,6 @@ export default function FailureDetailPage() {
     alert(error)
   }
 
-  const handleRemoveFilePreview = () => {
-    if (!failure) return
-
-    try {
-      const updated = updateFailure(id, {
-        filePreview: undefined,
-      })
-
-      if (updated) {
-        setFailure(updated)
-      }
-    } catch (error) {
-      console.error('[failure-detail] 파일 미리보기 삭제 오류:', error)
-    }
-  }
 
   const formatDate = (isoString: string) => {
     const date = new Date(isoString)
@@ -190,21 +175,70 @@ export default function FailureDetailPage() {
             </div>
           )}
 
-          {/* 파일 업로드 섹션 */}
-          {!failure.filePreview && (
-            <FileUploadSection
-              onUploadSuccess={handleFileUploadSuccess}
-              onUploadError={handleFileUploadError}
-            />
-          )}
+               {/* 파일 업로드 섹션 */}
+               {!failure.fileUrl && (
+                 <FileUploadSection
+                   onUploadSuccess={handleFileUploadSuccess}
+                   onUploadError={handleFileUploadError}
+                 />
+               )}
 
-          {/* 파일 미리보기 카드 */}
-          {failure.filePreview && (
-            <FilePreviewCard
-              preview={failure.filePreview}
-              onRemove={handleRemoveFilePreview}
-            />
-          )}
+               {/* 파일 미리보기 */}
+               {failure.fileUrl && (
+                 <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-4">
+                   <div className="flex items-center justify-between mb-3">
+                     <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                       <span>📄</span>
+                       {failure.fileName || '업로드된 파일'}
+                     </h3>
+                     <button
+                       onClick={() => {
+                         try {
+                           const updated = updateFailure(id, {
+                             fileUrl: undefined,
+                             fileName: undefined,
+                             fileType: undefined,
+                           })
+                           if (updated) {
+                             setFailure(updated)
+                           }
+                         } catch (error) {
+                           console.error('[failure-detail] 파일 삭제 오류:', error)
+                         }
+                       }}
+                       className="text-red-400 text-sm min-h-[32px] px-2"
+                     >
+                       삭제
+                     </button>
+                   </div>
+                   <div className="w-full">
+                     {failure.fileType === 'application/pdf' ? (
+                       <iframe
+                         src={failure.fileUrl}
+                         className="w-full h-[600px] border border-[#2A2A2A] rounded"
+                         title={failure.fileName || 'PDF 파일'}
+                       />
+                     ) : failure.fileType?.startsWith('image/') ? (
+                       <img
+                         src={failure.fileUrl}
+                         alt={failure.fileName || '이미지'}
+                         className="w-full h-auto rounded"
+                       />
+                     ) : (
+                       <div className="bg-[#2A2A2A] rounded p-4 text-center">
+                         <a
+                           href={failure.fileUrl}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="text-reloop-blue hover:underline"
+                         >
+                           파일 다운로드
+                         </a>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               )}
 
           {/* AI 분석 섹션 */}
           <AISummarySection failure={failure} />
