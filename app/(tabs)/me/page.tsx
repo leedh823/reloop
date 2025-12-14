@@ -2,17 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import AppShell from '@/components/Layout/AppShell'
 import { PrimaryButton } from '@/components/UI/Button'
 import { getProfile } from '@/lib/storage/profile'
 
-const AVATARS: { [key: string]: string } = {
-  avatar1: '😊',
-  avatar2: '😎',
-  avatar3: '🤔',
-  avatar4: '😄',
-  avatar5: '🙂',
-  avatar6: '😌',
+const AVATAR_IMAGES: { [key: string]: string } = {
+  avatar1: '/images/프로필 1.png',
+  avatar2: '/images/프로필 2.png',
+  avatar3: '/images/프로필3.png',
+  avatar4: '/images/프로필 4.png',
+  avatar5: '/images/프로필 5.png',
+  avatar6: '/images/프로필 6.png',
 }
 
 const GENDER_LABELS: { [key: string]: string } = {
@@ -76,8 +77,18 @@ export default function MePage() {
         <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-6 mb-4">
           <div className="flex flex-col items-center text-center space-y-4">
             {/* 아바타 */}
-            <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-5xl">
-              {AVATARS[profile.avatarId] || '👤'}
+            <div className="w-24 h-24 rounded-full bg-gray-700 overflow-hidden flex items-center justify-center">
+              {profile.avatarId && AVATAR_IMAGES[profile.avatarId] ? (
+                <Image
+                  src={AVATAR_IMAGES[profile.avatarId]}
+                  alt="Profile Avatar"
+                  width={96}
+                  height={96}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-5xl">👤</span>
+              )}
             </div>
 
             {/* 이름 */}

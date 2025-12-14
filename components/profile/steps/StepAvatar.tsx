@@ -8,12 +8,12 @@ interface StepAvatarProps {
 }
 
 const AVATARS = [
-  { id: 'avatar1', image: '/images/avatars/avatar1.png' },
-  { id: 'avatar2', image: '/images/avatars/avatar2.png' },
-  { id: 'avatar3', image: '/images/avatars/avatar3.png' },
-  { id: 'avatar4', image: '/images/avatars/avatar4.png' },
-  { id: 'avatar5', image: '/images/avatars/avatar5.png' },
-  { id: 'avatar6', image: '/images/avatars/avatar6.png' },
+  { id: 'avatar1', image: '/images/프로필 1.png' },
+  { id: 'avatar2', image: '/images/프로필 2.png' },
+  { id: 'avatar3', image: '/images/프로필3.png' },
+  { id: 'avatar4', image: '/images/프로필 4.png' },
+  { id: 'avatar5', image: '/images/프로필 5.png' },
+  { id: 'avatar6', image: '/images/프로필 6.png' },
 ]
 
 export default function StepAvatar({
