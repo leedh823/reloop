@@ -201,6 +201,19 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
         console.log('[analyze-file] Buffer 생성 완료:', { length: buffer.length })
 
+        // pdfjs-dist worker 설정 (pdf-parse가 내부적으로 사용)
+        // Vercel 서버리스 환경에서 worker 파일을 찾을 수 없으므로 비활성화
+        try {
+          const pdfjsDist = require('pdfjs-dist')
+          if (pdfjsDist.GlobalWorkerOptions) {
+            // worker를 사용하지 않도록 빈 문자열 설정
+            pdfjsDist.GlobalWorkerOptions.workerSrc = ''
+            console.log('[analyze-file] pdfjs-dist worker 비활성화 완료')
+          }
+        } catch (e) {
+          console.warn('[analyze-file] pdfjs-dist worker 설정 실패 (무시 가능):', e)
+        }
+
         // pdf-parse 모듈 로드 (DOMMatrix 폴리필이 이미 설정됨)
         const pdfParseModule = require('pdf-parse')
         console.log('[analyze-file] pdf-parse 모듈 로드 완료:', { 
@@ -224,7 +237,11 @@ export async function POST(request: NextRequest) {
         const timeoutDuration = fileSize > 20 * 1024 * 1024 ? 120000 : 90000
         
         // PDFParse 클래스 인스턴스 생성 및 파싱
-        const pdfParser = new PDFParse({ data: buffer })
+        // worker 문제를 피하기 위해 옵션에 useWorker: false 추가 시도
+        const pdfParser = new PDFParse({ 
+          data: buffer,
+          // worker 사용 안 함 (서버 사이드에서 직접 파싱)
+        })
         const parseOptions = { max: 0, version: '1.10.100' }
         
         const parsePromise = pdfParser.getText(parseOptions)
