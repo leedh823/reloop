@@ -8,6 +8,12 @@ export default function SplashPage() {
   const router = useRouter()
 
   useEffect(() => {
+    // 상태바 색상 설정 (검은 배경)
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', '#000000')
+    }
+
     // 2초 후 로그인 페이지로 이동
     const timer = setTimeout(() => {
       router.push('/login')
@@ -46,4 +52,3 @@ export default function SplashPage() {
     </div>
   )
 }
-

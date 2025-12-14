@@ -24,7 +24,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#359DFE',
+  themeColor: '#000000', // 기본값 (각 페이지에서 동적으로 변경)
 }
 
 export default function RootLayout({
@@ -42,6 +42,8 @@ export default function RootLayout({
         {/* 주소창 최소화를 위한 메타 태그 */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+        {/* 상태바 색상 동적 변경을 위한 메타 태그 */}
+        <meta name="theme-color" content="#000000" id="theme-color-meta" />
       </head>
       <body className={inter.className}>
         <RouteGuard>
