@@ -22,15 +22,9 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
       return
     }
 
-    // 루트 접근 시
+    // 루트 접근 시 스플래시로 이동
     if (pathname === '/') {
-      if (onboardingCompleted && guestId) {
-        // 온보딩과 로그인 완료 시 홈으로 이동
-        router.replace('/home')
-      } else {
-        // 미완료 시 스플래시로 이동
-        router.replace('/splash')
-      }
+      router.replace('/splash')
       return
     }
 
