@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createFailure, getAllFailures } from '@/lib/db'
 import { sendToDiscord } from '@/lib/discord'
-import { MAX_PDF_SIZE_BYTES, MAX_PDF_SIZE_MB } from '@/lib/constants'
+import { Failure } from '@/types/failure'
 
 export async function GET() {
   try {
@@ -18,82 +18,42 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
+    const body = await request.json()
     
-    // 텍스트 필드 추출
-    const title = formData.get('title') as string
-    const summary = formData.get('summary') as string
-    const content = formData.get('content') as string
-    const category = formData.get('category') as string
-    const emotionTag = formData.get('emotionTag') as string
-    const thumbnailUrl = formData.get('thumbnailUrl') as string | null
-    const author = formData.get('author') as string | null
-    const pdfFile = formData.get('pdfFile') as File | null
-
     // 필수 필드 검증
-    if (!title || !summary || !content || !category || !emotionTag) {
+    if (!body.title || !body.summary || !body.category || !body.emotion) {
       return NextResponse.json(
-        { error: '필수 필드가 누락되었습니다.' },
+        { error: '필수 필드가 누락되었습니다. (title, summary, category, emotion)' },
         { status: 400 }
       )
     }
 
-    // PDF 파일 처리
-    let finalPdfUrl: string | undefined = undefined
-
-    if (pdfFile) {
-      // 파일 크기 검증 (30MB 제한)
-      if (pdfFile.size > MAX_PDF_SIZE_BYTES) {
-        return NextResponse.json(
-          { error: `파일 용량이 너무 큽니다. PDF는 최대 ${MAX_PDF_SIZE_MB}MB까지 지원합니다. 파일을 압축하거나 분할해주세요.` },
-          { status: 413 }
-        )
-      }
-
-      // 파일 타입 검증
-      if (pdfFile.type !== 'application/pdf' && !pdfFile.name.toLowerCase().endsWith('.pdf')) {
-        return NextResponse.json(
-          { error: 'PDF 파일만 업로드할 수 있습니다.' },
-          { status: 400 }
-        )
-      }
-
-      // TODO: Vercel 환경에서는 파일 시스템에 직접 저장할 수 없으므로,
-      // 나중에 S3, Supabase Storage, Cloudinary 등의 외부 스토리지로 업로드해야 합니다.
-      // 현재는 파일명만 저장하고, 실제 파일은 메모리에만 존재합니다.
-      
-      // 임시 처리: 파일명을 저장 (실제 프로덕션에서는 외부 스토리지 URL로 대체)
-      const timestamp = Date.now()
-      const sanitizedFileName = pdfFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-      finalPdfUrl = `uploaded/${timestamp}_${sanitizedFileName}`
-      
-      // TODO: 실제 파일을 외부 스토리지에 업로드하는 로직 추가 필요
-      // 예: await uploadToS3(pdfFile, finalPdfUrl)
-      // 또는: await uploadToSupabase(pdfFile, finalPdfUrl)
-      
-      console.log(`PDF 파일 업로드됨: ${pdfFile.name} (${(pdfFile.size / 1024 / 1024).toFixed(2)} MB)`)
-      console.log(`임시 저장 경로: ${finalPdfUrl}`)
-    }
-
     const failure = createFailure({
-      title,
-      summary,
-      content,
-      category,
-      emotionTag,
-      pdfUrl: finalPdfUrl,
-      thumbnailUrl: thumbnailUrl || undefined,
-      author: author || undefined,
+      title: body.title,
+      summary: body.summary,
+      detail: body.detail,
+      category: body.category,
+      emotion: body.emotion,
+      images: body.images,
+      fileUrl: body.fileUrl,
+      fileName: body.fileName,
+      fileType: body.fileType,
+      aiStatus: body.aiStatus || 'none',
     })
 
-    // Discord Webhook으로 전송
-    await sendToDiscord({
-      id: failure.id,
-      title: failure.title,
-      summary: failure.summary,
-      category: failure.category,
-      emotionTag: failure.emotionTag,
-    })
+    // Discord Webhook으로 전송 (선택적)
+    try {
+      await sendToDiscord({
+        id: failure.id,
+        title: failure.title,
+        summary: failure.summary,
+        category: failure.category || '',
+        emotionTag: failure.emotion || '',
+      })
+    } catch (discordError) {
+      console.warn('Discord webhook 전송 실패:', discordError)
+      // Discord 오류는 무시하고 계속 진행
+    }
 
     return NextResponse.json(failure, { status: 201 })
   } catch (error) {

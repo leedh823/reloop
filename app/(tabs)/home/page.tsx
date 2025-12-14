@@ -14,23 +14,26 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    try {
-      const items = getFeedByTab(activeTab)
-      setFeedItems(items)
-    } catch (error) {
-      console.error('[home] 피드 로드 오류:', error)
-      setFeedItems([])
-    } finally {
-      setLoading(false)
+    const loadFeed = async () => {
+      try {
+        const items = await getFeedByTab(activeTab)
+        setFeedItems(items)
+      } catch (error) {
+        console.error('[home] 피드 로드 오류:', error)
+        setFeedItems([])
+      } finally {
+        setLoading(false)
+      }
     }
+    loadFeed()
   }, [activeTab])
 
   const handleTabChange = (tab: FeedTab) => {
     setActiveTab(tab)
     setLoading(true)
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
-        const items = getFeedByTab(tab)
+        const items = await getFeedByTab(tab)
         setFeedItems(items)
       } catch (error) {
         console.error('[home] 피드 로드 오류:', error)

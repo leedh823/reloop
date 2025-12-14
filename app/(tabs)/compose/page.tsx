@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import AppShell from '@/components/Layout/AppShell'
 import { PrimaryButton, SecondaryButton } from '@/components/UI/Button'
-import { saveFailure, updateFailure, getFailureById } from '@/lib/storage/failures'
+// API를 통해 서버에서 데이터 가져오기
 import { CATEGORIES } from '@/lib/constants/categories'
 import { EMOTIONS } from '@/lib/constants/emotions'
 import ImagePicker from '@/components/Compose/ImagePicker'
@@ -31,29 +31,35 @@ function ComposeForm() {
   // 편집 모드: 기존 데이터 로드
   useEffect(() => {
     if (failureId) {
-      try {
-        const failure = getFailureById(failureId)
-        if (failure) {
-          setFormData({
-            title: failure.title,
-            summary: failure.summary,
-            detail: failure.detail || '',
-            category: failure.category || '',
-            emotion: failure.emotion || '',
-          })
-          if (failure.images && failure.images.length > 0) {
-            setSelectedImages(
-              failure.images.map(img => ({
-                url: img.url,
-                file: null, // 편집 모드에서는 파일 객체가 없음
-              }))
-            )
-            setUploadedImageUrls(failure.images.map(img => img.url))
+      const loadFailure = async () => {
+        try {
+          const response = await fetch(`/api/failures/${failureId}`)
+          if (response.ok) {
+            const failure = await response.json()
+            setFormData({
+              title: failure.title,
+              summary: failure.summary,
+              detail: failure.detail || '',
+              category: failure.category || '',
+              emotion: failure.emotion || '',
+            })
+            if (failure.images && failure.images.length > 0) {
+              setSelectedImages(
+                failure.images.map((img: any) => ({
+                  url: img.url,
+                  file: null, // 편집 모드에서는 파일 객체가 없음
+                }))
+              )
+              setUploadedImageUrls(failure.images.map((img: any) => img.url))
+            }
+          } else {
+            console.error('[compose] 데이터 로드 실패:', response.statusText)
           }
+        } catch (error) {
+          console.error('[compose] 데이터 로드 오류:', error)
         }
-      } catch (error) {
-        console.error('[compose] 데이터 로드 오류:', error)
       }
+      loadFailure()
     } else {
       // AI 분석 결과에서 온 경우
       const fromAnalysis = searchParams.get('fromAnalysis')
@@ -180,34 +186,55 @@ function ComposeForm() {
       }))
 
       if (failureId) {
-        // 편집 모드: 기존 데이터 업데이트
-        const updated = updateFailure(failureId, {
-          title: formData.title.trim(),
-          summary: formData.summary.trim(),
-          detail: formData.detail.trim() || undefined,
-          category: formData.category,
-          emotion: formData.emotion,
-          images: images.length > 0 ? images : undefined,
+        // 편집 모드: API를 통해 업데이트
+        const response = await fetch(`/api/failures/${failureId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: formData.title.trim(),
+            summary: formData.summary.trim(),
+            detail: formData.detail.trim() || undefined,
+            category: formData.category,
+            emotion: formData.emotion,
+            images: images.length > 0 ? images : undefined,
+          }),
         })
 
-        if (!updated) {
-          alert('수정할 기록을 찾을 수 없습니다.')
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: '수정 실패' }))
+          alert(error.error || '수정할 기록을 찾을 수 없습니다.')
           return
         }
 
         // 성공 후 상세 페이지로 이동
         router.push(`/failures/${failureId}`)
       } else {
-        // 새로 작성: 저장
-        const newFailure = saveFailure({
-          title: formData.title.trim(),
-          summary: formData.summary.trim(),
-          detail: formData.detail.trim() || undefined,
-          category: formData.category,
-          emotion: formData.emotion,
-          images: images.length > 0 ? images : undefined,
-          aiStatus: 'none',
+        // 새로 작성: API를 통해 저장
+        const response = await fetch('/api/failures', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: formData.title.trim(),
+            summary: formData.summary.trim(),
+            detail: formData.detail.trim() || undefined,
+            category: formData.category,
+            emotion: formData.emotion,
+            images: images.length > 0 ? images : undefined,
+            aiStatus: 'none',
+          }),
         })
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: '저장 실패' }))
+          alert(error.error || '저장 중 오류가 발생했습니다.')
+          return
+        }
+
+        const newFailure = await response.json()
 
         // 성공 후 목록 페이지로 이동
         router.push('/failures')

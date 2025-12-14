@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Failure } from '@/types/failure'
-import { getFailureById, deleteFailure, updateFailure } from '@/lib/storage/failures'
+// API를 통해 서버에서 데이터 가져오기
 import FailureDetailHeader from '@/components/Failures/FailureDetailHeader'
 import AISummarySection from '@/components/Failures/AISummarySection'
 import FileUploadSection from '@/components/Failures/FileUploadSection'
@@ -26,19 +26,23 @@ export default function FailureDetailPage() {
   const [isCommentDrawerOpen, setIsCommentDrawerOpen] = useState(false)
 
   useEffect(() => {
-    try {
-      const data = getFailureById(id)
-      if (!data) {
+    const loadFailure = async () => {
+      try {
+        const response = await fetch(`/api/failures/${id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setFailure(data)
+        } else {
+          setFailure(null)
+        }
+      } catch (error) {
+        console.error('[failure-detail] 데이터 로드 오류:', error)
         setFailure(null)
-      } else {
-        setFailure(data)
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('[failure-detail] 데이터 로드 오류:', error)
-      setFailure(null)
-    } finally {
-      setLoading(false)
     }
+    loadFailure()
   }, [id])
 
   const handleEdit = () => {
@@ -49,13 +53,17 @@ export default function FailureDetailPage() {
     setIsDeleteModalOpen(true)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     try {
-      const success = deleteFailure(id)
-      if (success) {
+      const response = await fetch(`/api/failures/${id}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
         router.push('/failures')
       } else {
-        alert('삭제에 실패했습니다.')
+        const error = await response.json().catch(() => ({ error: '삭제 실패' }))
+        alert(error.error || '삭제에 실패했습니다.')
       }
     } catch (error) {
       console.error('[failure-detail] 삭제 오류:', error)
@@ -63,7 +71,7 @@ export default function FailureDetailPage() {
     }
   }
 
-  const handleFileUploadSuccess = (fileUrl: string, fileName: string, fileType: string) => {
+  const handleFileUploadSuccess = async (fileUrl: string, fileName: string, fileType: string) => {
     if (!failure) return
 
     try {
@@ -85,16 +93,25 @@ export default function FailureDetailPage() {
         fileType,
       })
 
-      const updated = updateFailure(id, {
-        images: existingImages,
-        // 하위 호환성을 위해 fileUrl도 유지 (첫 번째 이미지)
-        fileUrl: existingImages[0]?.url,
-        fileName: existingImages[0]?.fileName,
-        fileType: existingImages[0]?.fileType,
+      const response = await fetch(`/api/failures/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          images: existingImages,
+          // 하위 호환성을 위해 fileUrl도 유지 (첫 번째 이미지)
+          fileUrl: existingImages[0]?.url,
+          fileName: existingImages[0]?.fileName,
+          fileType: existingImages[0]?.fileType,
+        }),
       })
 
-      if (updated) {
+      if (response.ok) {
+        const updated = await response.json()
         setFailure(updated)
+      } else {
+        alert('파일 저장에 실패했습니다.')
       }
     } catch (error) {
       console.error('[failure-detail] 파일 저장 오류:', error)
@@ -106,7 +123,7 @@ export default function FailureDetailPage() {
     alert(error)
   }
 
-  const handleAddComment = (comment: { authorName: string; avatarId?: string; content: string }) => {
+  const handleAddComment = async (comment: { authorName: string; avatarId?: string; content: string }) => {
     if (!failure) return
 
     try {
@@ -117,13 +134,22 @@ export default function FailureDetailPage() {
         createdAt: new Date().toISOString(),
       }
 
-      const updated = updateFailure(id, {
-        comments: [...existingComments, newComment],
+      const response = await fetch(`/api/failures/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          comments: [...existingComments, newComment],
+        }),
       })
 
-      if (updated) {
+      if (response.ok) {
+        const updated = await response.json()
         setFailure(updated)
         setIsCommentDrawerOpen(false)
+      } else {
+        alert('댓글 추가에 실패했습니다.')
       }
     } catch (error) {
       console.error('[failure-detail] 댓글 추가 오류:', error)
@@ -210,16 +236,23 @@ export default function FailureDetailPage() {
                       }}
                     />
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         try {
                           const updatedImages = failure.images?.filter((_, i) => i !== index) || []
-                          const updated = updateFailure(id, {
-                            images: updatedImages.length > 0 ? updatedImages : undefined,
-                            fileUrl: updatedImages.length > 0 ? updatedImages[0]?.url : undefined,
-                            fileName: updatedImages.length > 0 ? updatedImages[0]?.fileName : undefined,
-                            fileType: updatedImages.length > 0 ? updatedImages[0]?.fileType : undefined,
+                          const response = await fetch(`/api/failures/${id}`, {
+                            method: 'PUT',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              images: updatedImages.length > 0 ? updatedImages : undefined,
+                              fileUrl: updatedImages.length > 0 ? updatedImages[0]?.url : undefined,
+                              fileName: updatedImages.length > 0 ? updatedImages[0]?.fileName : undefined,
+                              fileType: updatedImages.length > 0 ? updatedImages[0]?.fileType : undefined,
+                            }),
                           })
-                          if (updated) {
+                          if (response.ok) {
+                            const updated = await response.json()
                             setFailure(updated)
                           }
                         } catch (error) {
@@ -250,14 +283,21 @@ export default function FailureDetailPage() {
                     }}
                   />
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       try {
-                        const updated = updateFailure(id, {
-                          fileUrl: undefined,
-                          fileName: undefined,
-                          fileType: undefined,
+                        const response = await fetch(`/api/failures/${id}`, {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            fileUrl: undefined,
+                            fileName: undefined,
+                            fileType: undefined,
+                          }),
                         })
-                        if (updated) {
+                        if (response.ok) {
+                          const updated = await response.json()
                           setFailure(updated)
                         }
                       } catch (error) {

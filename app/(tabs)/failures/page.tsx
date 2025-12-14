@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import AppShell from '@/components/Layout/AppShell'
 import { Failure } from '@/types/failure'
-import { getFailures, forceInitializeDummyData } from '@/lib/storage/failures'
+// API를 통해 서버에서 데이터 가져오기
 import FailureCard from '@/components/Failures/FailureCard'
 import EmptyState from '@/components/Failures/EmptyState'
 import SearchBar from '@/components/Failures/SearchBar'
@@ -20,24 +20,26 @@ export default function FailuresPage() {
   const [sortBy, setSortBy] = useState<SortOption>('latest')
   const [searchQuery, setSearchQuery] = useState<string>('')
 
-  // 데이터 로드
+  // 데이터 로드 (API에서 가져오기)
   useEffect(() => {
-    try {
-      const data = getFailures()
-      // 항상 최소 5개의 더미 데이터가 포함되도록 보장
-      setFailures(data)
-    } catch (error) {
-      console.error('[failures] 데이터 로드 오류:', error)
-      // 오류 발생 시 더미 데이터 강제 초기화
+    const loadFailures = async () => {
       try {
-        const dummyData = forceInitializeDummyData()
-        setFailures(dummyData)
-      } catch (initError) {
-        console.error('[failures] 더미 데이터 초기화 실패:', initError)
+        const response = await fetch('/api/failures')
+        if (response.ok) {
+          const data = await response.json()
+          setFailures(data)
+        } else {
+          console.error('[failures] API 오류:', response.statusText)
+          setFailures([])
+        }
+      } catch (error) {
+        console.error('[failures] 데이터 로드 오류:', error)
+        setFailures([])
+      } finally {
+        setLoading(false)
       }
-    } finally {
-      setLoading(false)
     }
+    loadFailures()
   }, [])
 
   // 검색 및 필터링 및 정렬

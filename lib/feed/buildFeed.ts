@@ -3,7 +3,6 @@
  */
 
 import { Failure } from '@/types/failure'
-import { getFailures } from '@/lib/storage/failures'
 import { getProfile } from '@/lib/storage/profile'
 
 export type FeedTab = 'for-you' | 'trending' | 'recent' | 'following'
@@ -16,10 +15,26 @@ export interface FeedItem extends Failure {
 }
 
 /**
+ * API에서 failures 가져오기
+ */
+async function fetchFailures(): Promise<Failure[]> {
+  try {
+    const response = await fetch('/api/failures')
+    if (response.ok) {
+      return await response.json()
+    }
+    return []
+  } catch (error) {
+    console.error('[feed] API 오류:', error)
+    return []
+  }
+}
+
+/**
  * Recent 탭: 최신순 정렬
  */
-export function getRecentFeed(): FeedItem[] {
-  const failures = getFailures()
+export async function getRecentFeed(): Promise<FeedItem[]> {
+  const failures = await fetchFailures()
   const profile = getProfile()
   
   return failures
@@ -36,8 +51,8 @@ export function getRecentFeed(): FeedItem[] {
 /**
  * Trending 탭: 좋아요 수 기반 정렬
  */
-export function getTrendingFeed(): FeedItem[] {
-  const failures = getFailures()
+export async function getTrendingFeed(): Promise<FeedItem[]> {
+  const failures = await fetchFailures()
   const profile = getProfile()
   
   return failures
@@ -54,8 +69,8 @@ export function getTrendingFeed(): FeedItem[] {
 /**
  * For You 탭: 카테고리 다양성 기준으로 섞기
  */
-export function getForYouFeed(): FeedItem[] {
-  const failures = getFailures()
+export async function getForYouFeed(): Promise<FeedItem[]> {
+  const failures = await fetchFailures()
   const profile = getProfile()
   
   // 카테고리별로 그룹화
@@ -93,14 +108,14 @@ export function getForYouFeed(): FeedItem[] {
 /**
  * Following 탭: 아직 없음 (빈 배열 반환)
  */
-export function getFollowingFeed(): FeedItem[] {
+export async function getFollowingFeed(): Promise<FeedItem[]> {
   return []
 }
 
 /**
  * 탭별 피드 가져오기
  */
-export function getFeedByTab(tab: FeedTab): FeedItem[] {
+export async function getFeedByTab(tab: FeedTab): Promise<FeedItem[]> {
   switch (tab) {
     case 'recent':
       return getRecentFeed()
