@@ -201,34 +201,38 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
         console.log('[analyze-file] Buffer 생성 완료:', { length: buffer.length })
 
-        // pdfjs-dist worker 설정 (pdf-parse가 내부적으로 사용)
-        // Vercel 서버리스 환경에서 worker 파일을 찾을 수 없으므로 비활성화
+        // pdfjs-dist worker를 모듈 로드 전에 비활성화 (매우 중요!)
+        // pdf-parse가 내부적으로 pdfjs-dist를 사용하므로, 먼저 설정해야 함
         try {
-          const pdfjsDist = require('pdfjs-dist')
+          // legacy 빌드를 먼저 시도 (서버 환경에 더 적합)
+          const pdfjsDist = require('pdfjs-dist/legacy/build/pdf.js')
           if (pdfjsDist.GlobalWorkerOptions) {
-            // worker를 사용하지 않도록 빈 문자열 설정
             pdfjsDist.GlobalWorkerOptions.workerSrc = ''
-            console.log('[analyze-file] pdfjs-dist worker 비활성화 완료')
+            console.log('[analyze-file] pdfjs-dist worker 비활성화 완료 (legacy)')
           }
         } catch (e) {
-          console.warn('[analyze-file] pdfjs-dist worker 설정 실패 (무시 가능):', e)
+          console.warn('[analyze-file] pdfjs-dist legacy 로드 실패, 기본 버전 시도:', e)
+          try {
+            const pdfjsDist = require('pdfjs-dist')
+            if (pdfjsDist.GlobalWorkerOptions) {
+              pdfjsDist.GlobalWorkerOptions.workerSrc = ''
+              console.log('[analyze-file] pdfjs-dist worker 비활성화 완료 (기본 버전)')
+            }
+          } catch (e2) {
+            console.warn('[analyze-file] pdfjs-dist worker 설정 실패:', e2)
+          }
         }
 
-        // pdf-parse 모듈 로드 (DOMMatrix 폴리필이 이미 설정됨)
-        const pdfParseModule = require('pdf-parse')
+        // pdf-parse를 함수로 직접 사용 (클래스가 아닌)
+        const pdfParse = require('pdf-parse')
         console.log('[analyze-file] pdf-parse 모듈 로드 완료:', { 
-          hasPDFParse: !!pdfParseModule.PDFParse,
-          hasDefault: !!pdfParseModule.default,
-          moduleKeys: Object.keys(pdfParseModule),
+          type: typeof pdfParse,
           hasDOMMatrix: typeof globalThis.DOMMatrix !== 'undefined'
         })
 
-        // PDFParse 클래스 사용
-        const PDFParse = pdfParseModule.PDFParse
-        
-        if (!PDFParse || typeof PDFParse !== 'function') {
-          console.error('[analyze-file] PDFParse 클래스를 찾을 수 없습니다:', typeof PDFParse)
-          throw new Error('PDFParse 클래스를 찾을 수 없습니다.')
+        // pdf-parse는 함수로 직접 사용
+        if (typeof pdfParse !== 'function') {
+          throw new Error('pdf-parse가 함수가 아닙니다.')
         }
 
         console.log('[analyze-file] PDF 파싱 실행 중...')
@@ -236,15 +240,10 @@ export async function POST(request: NextRequest) {
         // 타임아웃 설정
         const timeoutDuration = fileSize > 20 * 1024 * 1024 ? 120000 : 90000
         
-        // PDFParse 클래스 인스턴스 생성 및 파싱
-        // worker 문제를 피하기 위해 옵션에 useWorker: false 추가 시도
-        const pdfParser = new PDFParse({ 
-          data: buffer,
-          // worker 사용 안 함 (서버 사이드에서 직접 파싱)
+        // pdf-parse 함수 직접 호출
+        const parsePromise = pdfParse(buffer, {
+          max: 0, // 모든 페이지
         })
-        const parseOptions = { max: 0, version: '1.10.100' }
-        
-        const parsePromise = pdfParser.getText(parseOptions)
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => {
             reject(new Error('PDF 파싱 시간이 초과되었습니다.'))
