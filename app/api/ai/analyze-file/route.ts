@@ -8,6 +8,39 @@ import { downloadFile } from '@/lib/r2'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
+// DOMMatrix 폴리필 (pdf-parse가 브라우저 API를 사용하려고 할 때 필요)
+if (typeof globalThis.DOMMatrix === 'undefined') {
+  globalThis.DOMMatrix = class DOMMatrix {
+    constructor(init?: any) {
+      // 간단한 폴리필 구현
+      this.a = 1
+      this.b = 0
+      this.c = 0
+      this.d = 1
+      this.e = 0
+      this.f = 0
+      this.m11 = 1
+      this.m12 = 0
+      this.m21 = 0
+      this.m22 = 1
+      this.m41 = 0
+      this.m42 = 0
+    }
+    a: number
+    b: number
+    c: number
+    d: number
+    e: number
+    f: number
+    m11: number
+    m12: number
+    m21: number
+    m22: number
+    m41: number
+    m42: number
+  } as any
+}
+
 // GET 요청 처리 (디버깅용 - 실제 사용 시 제거 가능)
 export async function GET(request: NextRequest) {
   return NextResponse.json(
@@ -168,12 +201,13 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
         console.log('[analyze-file] Buffer 생성 완료:', { length: buffer.length })
 
-        // pdf-parse 모듈 로드
+        // pdf-parse 모듈 로드 (DOMMatrix 폴리필이 이미 설정됨)
         const pdfParseModule = require('pdf-parse')
         console.log('[analyze-file] pdf-parse 모듈 로드 완료:', { 
           hasPDFParse: !!pdfParseModule.PDFParse,
           hasDefault: !!pdfParseModule.default,
-          moduleKeys: Object.keys(pdfParseModule)
+          moduleKeys: Object.keys(pdfParseModule),
+          hasDOMMatrix: typeof globalThis.DOMMatrix !== 'undefined'
         })
 
         // PDFParse 클래스 사용
