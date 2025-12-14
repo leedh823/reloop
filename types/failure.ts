@@ -17,6 +17,9 @@ export interface Failure {
     bullets: string[]
     possibleIssues: string[]
   }
+  fileUrl?: string // 업로드된 파일 URL
+  fileName?: string // 파일명
+  fileType?: string // 파일 타입
   aiResult?: {
     aiSummary?: string
     aiRootCause?: string
