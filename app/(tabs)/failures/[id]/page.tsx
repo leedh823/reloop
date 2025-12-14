@@ -1,7 +1,14 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import AppShell from '@/components/Layout/AppShell'
+import { Failure } from '@/types/failure'
+import { getFailureById, deleteFailure } from '@/lib/storage/failures'
+import FailureDetailHeader from '@/components/Failures/FailureDetailHeader'
+import AISummarySection from '@/components/Failures/AISummarySection'
+import ConfirmModal from '@/components/UI/ConfirmModal'
+import { getCategoryLabel } from '@/lib/constants/categories'
+import { getEmotionLabel } from '@/lib/constants/emotions'
 import { PrimaryButton } from '@/components/UI/Button'
 
 export const dynamic = 'force-dynamic'
@@ -11,45 +18,155 @@ export default function FailureDetailPage() {
   const router = useRouter()
   const id = params.id as string
 
-  return (
-    <AppShell 
-      title="실패 상세"
-      rightAction={
-        <button
-          onClick={() => router.push('/ai')}
-          className="text-reloop-blue text-sm font-medium min-h-[44px] px-2"
-        >
-          AI 분석
-        </button>
-      }
-    >
-      <div className="px-4 py-4 space-y-4">
-        {/* Placeholder Content */}
-        <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-6 text-center space-y-4">
-          <h2 className="text-xl font-semibold text-white">실패 상세 화면</h2>
-          <p className="text-[#B3B3B3] text-sm">
-            실패 ID: {id}
-          </p>
-          <p className="text-[#B3B3B3] text-sm">
-            실패의 상세 내용과 AI 분석 결과가 여기에 표시됩니다.
-          </p>
-          <p className="text-xs text-[#777777]">
-            (3단계: 디자인 시스템 적용 예정)
-          </p>
-        </div>
+  const [failure, setFailure] = useState<Failure | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
-        {/* CTA 버튼 (다음 단계에서 구현) */}
-        <div className="space-y-2">
-          <PrimaryButton 
-            fullWidth 
-            className="min-h-[44px]"
-            onClick={() => router.push(`/ai?failureId=${id}`)}
+  useEffect(() => {
+    try {
+      const data = getFailureById(id)
+      if (!data) {
+        // NotFound 처리
+        setFailure(null)
+      } else {
+        setFailure(data)
+      }
+    } catch (error) {
+      console.error('[failure-detail] 데이터 로드 오류:', error)
+      setFailure(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [id])
+
+  const handleEdit = () => {
+    router.push(`/compose?id=${id}`)
+  }
+
+  const handleDelete = () => {
+    setIsDeleteModalOpen(true)
+  }
+
+  const confirmDelete = () => {
+    try {
+      const success = deleteFailure(id)
+      if (success) {
+        router.push('/failures')
+      } else {
+        alert('삭제에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('[failure-detail] 삭제 오류:', error)
+      alert('삭제 중 오류가 발생했습니다.')
+    }
+  }
+
+  const formatDate = (isoString: string) => {
+    const date = new Date(isoString)
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-screen w-full max-w-md mx-auto bg-black">
+        <FailureDetailHeader onEdit={() => {}} onDelete={() => {}} />
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-[#B3B3B3]">로딩 중...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!failure) {
+    return (
+      <div className="flex flex-col h-screen w-full max-w-md mx-auto bg-black">
+        <FailureDetailHeader onEdit={() => {}} onDelete={() => {}} />
+        <div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
+          <div className="mb-6">
+            <span className="text-6xl">📝</span>
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">
+            기록을 찾을 수 없어요
+          </h2>
+          <p className="text-sm text-[#B3B3B3] mb-8 max-w-xs">
+            삭제되었거나 존재하지 않는 기록입니다.
+          </p>
+          <PrimaryButton
+            onClick={() => router.push('/failures')}
+            rounded="lg"
+            className="min-h-[48px] px-8"
           >
-            AI 분석하기
+            목록으로 돌아가기
           </PrimaryButton>
         </div>
       </div>
-    </AppShell>
+    )
+  }
+
+  return (
+    <div className="flex flex-col h-screen w-full max-w-md mx-auto bg-black overflow-hidden">
+      <FailureDetailHeader onEdit={handleEdit} onDelete={handleDelete} />
+
+      {/* 컨텐츠 영역 */}
+      <main className="flex-1 overflow-y-auto pb-20 safe-area-bottom min-h-0">
+        <div className="w-full max-w-full overflow-x-hidden px-4 py-6 space-y-6">
+          {/* 제목 */}
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-3">
+              {failure.title}
+            </h1>
+            <div className="flex items-center gap-3 text-sm text-[#777777] mb-4">
+              <span>{formatDate(failure.createdAt)}</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {failure.category && (
+                <span className="text-xs px-3 py-1.5 bg-[#2A2A2A] text-[#B3B3B3] rounded-full">
+                  {getCategoryLabel(failure.category)}
+                </span>
+              )}
+              {failure.emotion && (
+                <span className="text-xs px-3 py-1.5 bg-[#2A2A2A] text-[#B3B3B3] rounded-full">
+                  {getEmotionLabel(failure.emotion)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 요약 카드 */}
+          <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-4">
+            <h2 className="text-sm font-medium text-[#B3B3B3] mb-2">요약</h2>
+            <p className="text-base text-white leading-relaxed">{failure.summary}</p>
+          </div>
+
+          {/* 상세 내용 */}
+          {failure.detail && (
+            <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-4">
+              <h2 className="text-sm font-medium text-[#B3B3B3] mb-2">상세 내용</h2>
+              <p className="text-base text-white leading-relaxed whitespace-pre-line">
+                {failure.detail}
+              </p>
+            </div>
+          )}
+
+          {/* AI 분석 섹션 */}
+          <AISummarySection failure={failure} />
+        </div>
+      </main>
+
+      {/* 삭제 확인 모달 */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="정말 삭제할까요?"
+        message="삭제된 기록은 복구할 수 없습니다."
+        confirmText="삭제"
+        cancelText="취소"
+      />
+    </div>
   )
 }
-

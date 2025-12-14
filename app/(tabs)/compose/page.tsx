@@ -1,15 +1,20 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import AppShell from '@/components/Layout/AppShell'
 import { PrimaryButton, SecondaryButton } from '@/components/UI/Button'
-import { saveFailure } from '@/lib/storage/failures'
+import { saveFailure, updateFailure, getFailureById } from '@/lib/storage/failures'
 import { CATEGORIES } from '@/lib/constants/categories'
 import { EMOTIONS } from '@/lib/constants/emotions'
 
-export default function ComposePage() {
+export const dynamic = 'force-dynamic'
+
+function ComposeForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const failureId = searchParams.get('id')
+
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
@@ -18,6 +23,26 @@ export default function ComposePage() {
     category: '',
     emotion: '',
   })
+
+  // 편집 모드: 기존 데이터 로드
+  useEffect(() => {
+    if (failureId) {
+      try {
+        const failure = getFailureById(failureId)
+        if (failure) {
+          setFormData({
+            title: failure.title,
+            summary: failure.summary,
+            detail: failure.detail || '',
+            category: failure.category || '',
+            emotion: failure.emotion || '',
+          })
+        }
+      } catch (error) {
+        console.error('[compose] 데이터 로드 오류:', error)
+      }
+    }
+  }, [failureId])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -35,18 +60,37 @@ export default function ComposePage() {
 
     setLoading(true)
     try {
-      // localStorage에 저장
-      saveFailure({
-        title: formData.title.trim(),
-        summary: formData.summary.trim(),
-        detail: formData.detail.trim() || undefined,
-        category: formData.category,
-        emotion: formData.emotion,
-        aiStatus: 'none',
-      })
+      if (failureId) {
+        // 편집 모드: 기존 데이터 업데이트
+        const updated = updateFailure(failureId, {
+          title: formData.title.trim(),
+          summary: formData.summary.trim(),
+          detail: formData.detail.trim() || undefined,
+          category: formData.category,
+          emotion: formData.emotion,
+        })
 
-      // 성공 후 목록 페이지로 이동
-      router.push('/failures')
+        if (!updated) {
+          alert('수정할 기록을 찾을 수 없습니다.')
+          return
+        }
+
+        // 성공 후 상세 페이지로 이동
+        router.push(`/failures/${failureId}`)
+      } else {
+        // 새로 작성: 저장
+        const newFailure = saveFailure({
+          title: formData.title.trim(),
+          summary: formData.summary.trim(),
+          detail: formData.detail.trim() || undefined,
+          category: formData.category,
+          emotion: formData.emotion,
+          aiStatus: 'none',
+        })
+
+        // 성공 후 목록 페이지로 이동
+        router.push('/failures')
+      }
     } catch (error) {
       console.error('[compose] 저장 오류:', error)
       alert('저장 중 오류가 발생했습니다.')
@@ -55,9 +99,11 @@ export default function ComposePage() {
     }
   }
 
+  const isEditMode = !!failureId
+
   return (
     <AppShell 
-      title="실패 작성"
+      title={isEditMode ? "실패 수정" : "실패 작성"}
       rightAction={
         <button
           onClick={() => router.back()}
@@ -170,7 +216,7 @@ export default function ComposePage() {
             className="min-h-[48px]"
             disabled={loading}
           >
-            {loading ? '저장 중...' : '저장하기'}
+            {loading ? (isEditMode ? '수정 중...' : '저장 중...') : (isEditMode ? '수정하기' : '저장하기')}
           </PrimaryButton>
           <SecondaryButton 
             type="button"
@@ -184,5 +230,19 @@ export default function ComposePage() {
         </div>
       </form>
     </AppShell>
+  )
+}
+
+export default function ComposePage() {
+  return (
+    <Suspense fallback={
+      <AppShell title="실패 작성">
+        <div className="flex items-center justify-center py-16">
+          <span className="text-[#B3B3B3]">로딩 중...</span>
+        </div>
+      </AppShell>
+    }>
+      <ComposeForm />
+    </Suspense>
   )
 }
