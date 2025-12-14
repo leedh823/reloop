@@ -27,6 +27,11 @@ export default function LoginPage() {
     alert('카카오 로그인은 준비 중입니다.')
   }
 
+  const handleGoogleLogin = () => {
+    // TODO: 구글 로그인 구현 (3단계)
+    alert('구글 로그인은 준비 중입니다.')
+  }
+
   return (
     <div className="min-h-screen bg-black flex flex-col px-4 safe-area-top safe-area-bottom">
       {/* 상단: 로고 영역 */}

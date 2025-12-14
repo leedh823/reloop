@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { getProfile } from '@/lib/storage/profile'
 
 export default function RouteGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -14,30 +15,34 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     const onboardingCompleted = localStorage.getItem('onboardingCompleted')
     const guestId = localStorage.getItem('guestId')
     
-    const publicPaths = ['/splash', '/login', '/onboarding']
+    const publicPaths = ['/onboarding', '/login', '/splash', '/profile-onboarding']
     const isPublicPath = publicPaths.includes(pathname)
 
-    // 스플래시는 항상 접근 가능
+    // 스플래시 페이지는 항상 접근 가능
     if (pathname === '/splash') {
       return
     }
 
-    // 루트 접근 시 스플래시로 이동
-    if (pathname === '/') {
-      router.replace('/splash')
+    // 온보딩 체크
+    if (!onboardingCompleted && !isPublicPath) {
+      router.replace('/onboarding')
       return
     }
 
-    // 게스트 ID가 없으면 로그인으로
-    if (!guestId && !isPublicPath) {
+    // 게스트 ID 체크 (온보딩 완료 후)
+    if (onboardingCompleted && !guestId && !isPublicPath) {
       router.replace('/login')
       return
     }
 
-    // 온보딩이 완료되지 않았으면 온보딩으로
-    if (!onboardingCompleted && guestId && !isPublicPath) {
-      router.replace('/onboarding')
-      return
+    // 프로필 온보딩 체크 (게스트 ID가 있는 경우)
+    if (onboardingCompleted && guestId && !isPublicPath) {
+      const profile = getProfile()
+      // /me 페이지는 프로필이 없어도 접근 가능 (CTA로 설정 가능)
+      if (pathname !== '/me' && (!profile || !profile.completed)) {
+        router.replace('/profile-onboarding')
+        return
+      }
     }
 
     // 온보딩 완료 후 루트 접근 시 홈으로 리다이렉트
@@ -49,4 +54,3 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
 
   return <>{children}</>
 }
-
