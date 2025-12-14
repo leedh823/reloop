@@ -1,17 +1,19 @@
 'use client'
 
+import Image from 'next/image'
+
 interface StepAvatarProps {
   selectedAvatarId: string
   onAvatarSelect: (avatarId: string) => void
 }
 
 const AVATARS = [
-  { id: 'avatar1', emoji: '😊' },
-  { id: 'avatar2', emoji: '😎' },
-  { id: 'avatar3', emoji: '🤔' },
-  { id: 'avatar4', emoji: '😄' },
-  { id: 'avatar5', emoji: '🙂' },
-  { id: 'avatar6', emoji: '😌' },
+  { id: 'avatar1', image: '/images/avatars/avatar1.png' },
+  { id: 'avatar2', image: '/images/avatars/avatar2.png' },
+  { id: 'avatar3', image: '/images/avatars/avatar3.png' },
+  { id: 'avatar4', image: '/images/avatars/avatar4.png' },
+  { id: 'avatar5', image: '/images/avatars/avatar5.png' },
+  { id: 'avatar6', image: '/images/avatars/avatar6.png' },
 ]
 
 export default function StepAvatar({
@@ -29,13 +31,19 @@ export default function StepAvatar({
             key={avatar.id}
             type="button"
             onClick={() => onAvatarSelect(avatar.id)}
-            className={`aspect-square min-h-[80px] rounded-xl text-4xl flex items-center justify-center transition-all ${
+            className={`aspect-square min-h-[80px] rounded-xl overflow-hidden transition-all ${
               selectedAvatarId === avatar.id
-                ? 'bg-reloop-blue ring-4 ring-reloop-blue ring-offset-2'
-                : 'bg-gray-100 hover:bg-gray-200'
+                ? 'ring-4 ring-reloop-blue ring-offset-2'
+                : 'ring-2 ring-transparent hover:ring-gray-300'
             }`}
           >
-            {avatar.emoji}
+            <Image
+              src={avatar.image}
+              alt={`Avatar ${avatar.id}`}
+              width={80}
+              height={80}
+              className="w-full h-full object-cover"
+            />
           </button>
         ))}
       </div>
