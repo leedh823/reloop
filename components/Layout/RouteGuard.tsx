@@ -21,7 +21,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     const onboardingCompleted = localStorage.getItem('onboardingCompleted')
     const guestId = localStorage.getItem('guestId')
     
-    const publicPaths = ['/splash', '/login', '/onboarding']
+    const publicPaths = ['/splash', '/login', '/onboarding', '/profile-onboarding']
     const isPublicPath = publicPaths.includes(pathname)
 
     // 스플래시는 항상 접근 가능
@@ -35,7 +35,12 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
       return
     }
 
-    // 새로고침 감지 시 스플래시로 이동 (스플래시, 로그인, 온보딩 제외)
+    // 프로필 온보딩 페이지는 항상 접근 가능
+    if (pathname === '/profile-onboarding') {
+      return
+    }
+
+    // 새로고침 감지 시 스플래시로 이동 (스플래시, 로그인, 온보딩, 프로필 온보딩 제외)
     if (isRefresh && !isPublicPath && onboardingCompleted && guestId) {
       router.replace('/splash')
       return
