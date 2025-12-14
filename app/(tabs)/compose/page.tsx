@@ -7,7 +7,7 @@ import { PrimaryButton, SecondaryButton } from '@/components/UI/Button'
 import { saveFailure, updateFailure, getFailureById } from '@/lib/storage/failures'
 import { CATEGORIES } from '@/lib/constants/categories'
 import { EMOTIONS } from '@/lib/constants/emotions'
-import { MAX_PDF_SIZE_BYTES, MAX_PDF_SIZE_MB } from '@/lib/constants/file-upload'
+import ImagePicker from '@/components/Compose/ImagePicker'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,12 +15,11 @@ function ComposeForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const failureId = searchParams.get('id')
-  const pdfFileInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [pdfFile, setPdfFile] = useState<File | null>(null)
-  const [pdfUrl, setPdfUrl] = useState<string>('')
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const [selectedImages, setSelectedImages] = useState<Array<{ url: string; file: File | null }>>([])
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([])
   const [formData, setFormData] = useState({
     title: '',
     summary: '',
@@ -42,8 +41,14 @@ function ComposeForm() {
             category: failure.category || '',
             emotion: failure.emotion || '',
           })
-          if (failure.pdfUrl) {
-            setPdfUrl(failure.pdfUrl)
+          if (failure.images && failure.images.length > 0) {
+            setSelectedImages(
+              failure.images.map(img => ({
+                url: img.url,
+                file: null, // 편집 모드에서는 파일 객체가 없음
+              }))
+            )
+            setUploadedImageUrls(failure.images.map(img => img.url))
           }
         }
       } catch (error) {
@@ -78,74 +83,75 @@ function ComposeForm() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handlePdfFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // 파일 타입 검증
-    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      alert('PDF 파일만 업로드할 수 있습니다.')
-      return
-    }
-
-    // 파일 크기 검증
-    if (file.size > MAX_PDF_SIZE_BYTES) {
-      alert(`PDF 파일은 최대 ${MAX_PDF_SIZE_MB}MB까지 업로드할 수 있습니다.`)
-      return
-    }
-
-    setPdfFile(file)
-    setUploading(true)
-
-    try {
-      // Presigned URL 생성
-      const uploadResponse = await fetch('/api/ai/upload-file', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-          fileSize: file.size,
-        }),
-      })
-
-      if (!uploadResponse.ok) {
-        throw new Error('업로드 URL 생성 실패')
-      }
-
-      const { uploadUrl, publicUrl } = await uploadResponse.json()
-
-      // R2에 직접 업로드
-      const uploadResult = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-        },
-      })
-
-      if (!uploadResult.ok) {
-        throw new Error('파일 업로드 실패')
-      }
-
-      setPdfUrl(publicUrl)
-      alert('PDF 파일이 업로드되었습니다.')
-    } catch (error) {
-      console.error('[compose] PDF 업로드 오류:', error)
-      alert('PDF 파일 업로드 중 오류가 발생했습니다.')
-      setPdfFile(null)
-    } finally {
-      setUploading(false)
-    }
+  const handleImagesChange = (images: Array<{ url: string; file: File | null }>) => {
+    setSelectedImages(images)
   }
 
-  const handleRemovePdf = () => {
-    setPdfFile(null)
-    setPdfUrl('')
-    if (pdfFileInputRef.current) {
-      pdfFileInputRef.current.value = ''
+  const uploadImagesToR2 = async (images: Array<{ url: string; file: File | null }>) => {
+    const urls: string[] = []
+    setUploadingImages(true)
+
+    try {
+      for (const image of images) {
+        // 이미 업로드된 이미지는 URL만 사용
+        if (!image.file) {
+          // 편집 모드에서 기존 이미지인 경우
+          if (image.url.startsWith('http')) {
+            urls.push(image.url)
+            continue
+          }
+        }
+
+        if (!image.file) continue
+
+        // 파일 크기 검증 (10MB)
+        const maxSize = 10 * 1024 * 1024
+        if (image.file.size > maxSize) {
+          alert(`${image.file.name}: 이미지가 너무 큽니다. (${(image.file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 10MB까지 지원합니다.`)
+          continue
+        }
+
+        // Presigned URL 생성
+        const uploadResponse = await fetch('/api/ai/upload-file', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filename: image.file.name,
+            contentType: image.file.type || 'image/jpeg',
+            fileSize: image.file.size,
+          }),
+        })
+
+        if (!uploadResponse.ok) {
+          throw new Error('업로드 URL 생성 실패')
+        }
+
+        const { uploadUrl, publicUrl } = await uploadResponse.json()
+
+        // R2에 직접 업로드
+        const uploadResult = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: image.file,
+          headers: {
+            'Content-Type': image.file.type || 'image/jpeg',
+          },
+        })
+
+        if (!uploadResult.ok) {
+          throw new Error('파일 업로드 실패')
+        }
+
+        urls.push(publicUrl)
+      }
+
+      return urls
+    } catch (error) {
+      console.error('[compose] 이미지 업로드 오류:', error)
+      throw error
+    } finally {
+      setUploadingImages(false)
     }
   }
 
@@ -160,6 +166,19 @@ function ComposeForm() {
 
     setLoading(true)
     try {
+      // 이미지 업로드
+      let imageUrls: string[] = []
+      if (selectedImages.length > 0) {
+        imageUrls = await uploadImagesToR2(selectedImages)
+      }
+
+      // 이미지 데이터 구조화
+      const images = imageUrls.map((url, index) => ({
+        url,
+        fileName: selectedImages[index]?.file?.name || `이미지 ${index + 1}`,
+        fileType: selectedImages[index]?.file?.type || 'image/jpeg',
+      }))
+
       if (failureId) {
         // 편집 모드: 기존 데이터 업데이트
         const updated = updateFailure(failureId, {
@@ -168,7 +187,7 @@ function ComposeForm() {
           detail: formData.detail.trim() || undefined,
           category: formData.category,
           emotion: formData.emotion,
-          pdfUrl: pdfUrl || undefined,
+          images: images.length > 0 ? images : undefined,
         })
 
         if (!updated) {
@@ -186,7 +205,7 @@ function ComposeForm() {
           detail: formData.detail.trim() || undefined,
           category: formData.category,
           emotion: formData.emotion,
-          pdfUrl: pdfUrl || undefined,
+          images: images.length > 0 ? images : undefined,
           aiStatus: 'none',
         })
 
@@ -266,61 +285,12 @@ function ComposeForm() {
           />
         </div>
 
-        {/* PDF 파일 업로드 */}
-        <div>
-          <label htmlFor="pdfFile" className="block text-sm font-medium text-white mb-2">
-            PDF 파일 (선택)
-          </label>
-          {pdfUrl ? (
-            <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <span className="text-2xl">📄</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white truncate">
-                      {pdfFile?.name || 'PDF 파일'}
-                    </p>
-                    <p className="text-xs text-[#777777]">업로드 완료</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRemovePdf}
-                  className="text-red-400 text-sm min-h-[44px] px-3"
-                >
-                  삭제
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <input
-                type="file"
-                id="pdfFile"
-                ref={pdfFileInputRef}
-                accept=".pdf,application/pdf"
-                onChange={handlePdfFileChange}
-                disabled={uploading}
-                className="hidden"
-              />
-              <label
-                htmlFor="pdfFile"
-                className={`flex items-center justify-center w-full min-h-[48px] px-4 py-3 bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg text-base text-white cursor-pointer hover:bg-[#252525] transition-colors ${
-                  uploading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {uploading ? (
-                  <span className="text-[#B3B3B3]">업로드 중...</span>
-                ) : (
-                  <>
-                    <span className="mr-2">📄</span>
-                    <span>PDF 파일 선택 (최대 {MAX_PDF_SIZE_MB}MB)</span>
-                  </>
-                )}
-              </label>
-            </div>
-          )}
-        </div>
+        {/* 이미지 선택 (인스타그램 스타일) */}
+        <ImagePicker
+          images={selectedImages}
+          onImagesChange={handleImagesChange}
+          maxImages={10}
+        />
 
         {/* 카테고리 */}
         <div>
@@ -372,7 +342,7 @@ function ComposeForm() {
             type="submit"
             fullWidth 
             className="min-h-[48px]"
-            disabled={loading || uploading}
+            disabled={loading || uploadingImages}
           >
             {loading ? (isEditMode ? '수정 중...' : '저장 중...') : (isEditMode ? '수정하기' : '저장하기')}
           </PrimaryButton>
@@ -381,7 +351,7 @@ function ComposeForm() {
             fullWidth 
             className="min-h-[48px]"
             onClick={() => router.back()}
-            disabled={loading || uploading}
+            disabled={loading || uploadingImages}
           >
             취소
           </SecondaryButton>
