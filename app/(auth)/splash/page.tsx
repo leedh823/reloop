@@ -27,25 +27,27 @@ export default function SplashPage() {
       <div className="flex flex-col items-center space-y-8 animate-fade-in px-4">
         {/* 로고 */}
         <div className="flex items-center justify-center">
-          <Image
+          <img
             src="/images/logo1.png"
             alt="Reloop"
-            width={120}
-            height={120}
             className="h-24 w-24 object-contain"
-            priority
+            loading="eager"
+            onError={(e) => {
+              console.error('[splash] 로고 이미지 로드 오류:', e)
+            }}
           />
         </div>
 
         {/* 슬로건 */}
         <div className="flex items-center justify-center">
-          <Image
-            src="/images/슬로건.png"
+          <img
+            src={`/images/${encodeURIComponent('슬로건.png')}`}
             alt="실패를 기록하고 다시 도전하세요"
-            width={200}
-            height={40}
             className="h-10 w-auto object-contain"
-            priority
+            loading="eager"
+            onError={(e) => {
+              console.error('[splash] 슬로건 이미지 로드 오류:', e)
+            }}
           />
         </div>
       </div>
