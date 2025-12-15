@@ -11,7 +11,9 @@ export interface AnalyzeInputProps {
   onCategoryChange: (category: string) => void
   selectedEmotion?: string
   onEmotionChange: (emotion: string) => void
-  onFileUploaded?: (text: string) => void}
+  onFileUploaded?: (text: string) => void
+  onInputModeChange?: (mode: 'text' | 'file') => void
+}
 
 export default function AnalyzeInput({
   inputText,
@@ -20,16 +22,126 @@ export default function AnalyzeInput({
   onCategoryChange,
   selectedEmotion,
   onEmotionChange,
+  onFileUploaded,
+  onInputModeChange,
 }: AnalyzeInputProps) {
   const [inputMode, setInputMode] = useState<'text' | 'file'>('text')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setSelectedFile(file)
-      // TODO: 9단계에서 실제 파일 업로드/파싱 구현 예정
+    if (!file) return
+
+    // 파일 타입 검증
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png']
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
+
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+      alert('PDF 또는 이미지 파일만 업로드할 수 있습니다.')
+      return
+    }
+
+    // 파일 크기 검증 (10MB)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert(`파일이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 10MB까지 지원합니다.`)
+      return
+    }
+
+    setSelectedFile(file)
+    setUploading(true)
+
+    try {
+      // 1. Presigned URL 생성
+      const uploadResponse = await fetch('/api/ai/upload-file', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || 'application/pdf',
+          fileSize: file.size,
+        }),
+      })
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({ error: '업로드 URL 생성 실패' }))
+        throw new Error(errorData.error || '업로드 URL 생성 실패')
+      }
+
+      const { uploadUrl, publicUrl, key } = await uploadResponse.json()
+
+      // 2. R2에 직접 파일 업로드
+      const uploadResult = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type || 'application/pdf',
+        },
+      })
+
+      if (!uploadResult.ok) {
+        throw new Error('파일 업로드 실패')
+      }
+
+      // 3. 파일 파싱 (PDF인 경우)
+      if (file.type === 'application/pdf' || fileExtension === '.pdf') {
+        const parseResponse = await fetch('/api/files/parse', {
+          method: 'POST',
+          body: (() => {
+            const formData = new FormData()
+            formData.append('blobUrl', publicUrl)
+            formData.append('fileKey', key)
+            return formData
+          })(),
+        })
+
+        if (parseResponse.ok) {
+          const parseData = await parseResponse.json()
+          // PDF 파싱 결과가 있으면 텍스트로 변환
+          if (parseData.extractedText) {
+            const extractedText = parseData.extractedText
+            onInputChange(extractedText)
+            if (onFileUploaded) {
+              onFileUploaded(extractedText)
+            }
+          } else {
+            // 파싱 결과가 없으면 파일 정보만 표시
+            const fileInfo = `파일이 업로드되었습니다: ${file.name}\n\n파일 내용을 분석합니다.`
+            onInputChange(fileInfo)
+            if (onFileUploaded) {
+              onFileUploaded(fileInfo)
+            }
+          }
+        } else {
+          // 파싱 실패해도 파일은 업로드됨
+          const fileInfo = `파일이 업로드되었습니다: ${file.name}\n\n파일 내용을 분석합니다.`
+          onInputChange(fileInfo)
+          if (onFileUploaded) {
+            onFileUploaded(fileInfo)
+          }
+        }
+      } else {
+        // 이미지 파일인 경우 - 파일 정보를 텍스트로 입력
+        const imageInfo = `이미지 파일이 업로드되었습니다: ${file.name}\n\n이미지 내용을 분석합니다.`
+        onInputChange(imageInfo)
+        if (onFileUploaded) {
+          onFileUploaded(imageInfo)
+        }
+      }
+    } catch (error: any) {
+      console.error('[AnalyzeInput] 파일 업로드 오류:', error)
+      alert(`파일 업로드 중 오류가 발생했습니다: ${error?.message || '알 수 없는 오류'}`)
+      setSelectedFile(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -52,7 +164,10 @@ export default function AnalyzeInput({
       <div className="flex gap-2 border-b border-[#2A2A2A]">
         <button
           type="button"
-          onClick={() => setInputMode('text')}
+          onClick={() => {
+            setInputMode('text')
+            onInputModeChange?.('text')
+          }}
           className={`flex-1 py-3 text-sm font-medium transition-colors ${
             inputMode === 'text'
               ? 'text-reloop-blue border-b-2 border-reloop-blue'
@@ -63,7 +178,10 @@ export default function AnalyzeInput({
         </button>
         <button
           type="button"
-          onClick={() => setInputMode('file')}
+          onClick={() => {
+            setInputMode('file')
+            onInputModeChange?.('file')
+          }}
           className={`flex-1 py-3 text-sm font-medium transition-colors ${
             inputMode === 'file'
               ? 'text-reloop-blue border-b-2 border-reloop-blue'
@@ -111,13 +229,16 @@ export default function AnalyzeInput({
                   type="button"
                   onClick={handleRemoveFile}
                   className="text-red-400 text-sm min-h-[44px] px-3"
+                  disabled={uploading}
                 >
                   삭제
                 </button>
               </div>
-              <p className="text-xs text-[#777777] mt-2">
-                ※ 실제 파일 업로드/파싱은 9단계에서 구현 예정입니다.
-              </p>
+              {uploading && (
+                <p className="text-xs text-reloop-blue mt-2">
+                  파일 업로드 중...
+                </p>
+              )}
             </div>
           ) : (
             <div>
@@ -190,6 +311,7 @@ export default function AnalyzeInput({
     </div>
   )
 }
+
 
 
 

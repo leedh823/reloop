@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import AppShell from '@/components/Layout/AppShell'
 import { PrimaryButton } from '@/components/UI/Button'
 import { getProfile } from '@/lib/storage/profile'
+import { Failure } from '@/types/failure'
 
 const AVATAR_IMAGES: { [key: string]: string } = {
   avatar1: '/images/프로필 1.png',
@@ -16,21 +18,42 @@ const AVATAR_IMAGES: { [key: string]: string } = {
   avatar6: '/images/프로필 6.png',
 }
 
-const GENDER_LABELS: { [key: string]: string } = {
-  male: '남자',
-  female: '여자',
-  none: '',
-}
-
 export default function MePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
+  const [myFailures, setMyFailures] = useState<Failure[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loaded = getProfile()
     setProfile(loaded)
-    setLoading(false)
+    
+    // 내가 작성한 게시글 가져오기
+    const loadMyFailures = async () => {
+      try {
+        const guestId = typeof window !== 'undefined' ? localStorage.getItem('guestId') : null
+        if (!guestId) {
+          setMyFailures([])
+          setLoading(false)
+          return
+        }
+
+        const response = await fetch('/api/failures')
+        if (response.ok) {
+          const allFailures = await response.json()
+          // 내가 작성한 게시글만 필터링
+          const filtered = allFailures.filter((f: Failure) => f.authorId === guestId)
+          setMyFailures(filtered)
+        }
+      } catch (error) {
+        console.error('[me] 게시글 로드 오류:', error)
+        setMyFailures([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadMyFailures()
   }, [])
 
   // 톱니바퀴 아이콘 (항상 표시)
@@ -49,7 +72,7 @@ export default function MePage() {
 
   if (loading) {
     return (
-      <AppShell title="나" rightAction={rightAction}>
+      <AppShell title="" rightAction={rightAction}>
         <div className="flex items-center justify-center py-16">
           <span className="text-[#B3B3B3]">로딩 중...</span>
         </div>
@@ -59,7 +82,7 @@ export default function MePage() {
 
   if (!profile || !profile.completed) {
     return (
-      <AppShell title="나" rightAction={rightAction}>
+      <AppShell title="" rightAction={rightAction}>
         <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
           <div className="mb-6">
             <span className="text-6xl">👤</span>
@@ -82,61 +105,121 @@ export default function MePage() {
     )
   }
 
-  const guestId = typeof window !== 'undefined' ? localStorage.getItem('guestId') : null
+  const getImageUrl = (failure: Failure) => {
+    if (failure.images && failure.images.length > 0) {
+      return failure.images[0].url
+    }
+    return failure.fileUrl
+  }
 
   return (
-    <AppShell title="나" rightAction={rightAction}>
-          <div className="px-4 py-4">
-        {/* 프로필 카드 */}
-        <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-6 mb-4">
-          <div className="flex flex-col items-center text-center space-y-4">
-            {/* 아바타 */}
-            <div className="w-24 h-24 rounded-full bg-gray-700 overflow-hidden flex items-center justify-center">
+    <AppShell title="" rightAction={rightAction}>
+      <div className="w-full">
+        {/* 프로필 헤더 (Instagram 스타일) */}
+        <div className="px-4 py-4">
+          <div className="flex items-start gap-4">
+            {/* 프로필 사진 */}
+            <div className="w-20 h-20 rounded-full bg-gray-700 overflow-hidden flex items-center justify-center flex-shrink-0">
               {profile.avatarId && AVATAR_IMAGES[profile.avatarId] ? (
                 <Image
                   src={AVATAR_IMAGES[profile.avatarId]}
                   alt="Profile Avatar"
-                  width={96}
-                  height={96}
+                  width={80}
+                  height={80}
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-5xl">👤</span>
+                <span className="text-4xl">👤</span>
               )}
             </div>
 
-            {/* 이름 */}
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-1">{profile.name}</h2>
-              {profile.gender !== 'none' && (
-                <p className="text-sm text-[#B3B3B3]">{GENDER_LABELS[profile.gender]}</p>
-              )}
+            {/* 사용자 정보 및 통계 */}
+            <div className="flex-1 min-w-0">
+              <div className="mb-4">
+                <h1 className="text-lg font-semibold text-white mb-3">{profile.name}</h1>
+                
+                {/* 통계 */}
+                <div className="flex items-center gap-6 mb-3">
+                  <div className="text-center">
+                    <div className="text-base font-semibold text-white">{myFailures.length}</div>
+                    <div className="text-xs text-[#B3B3B3]">게시물</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-base font-semibold text-white">0</div>
+                    <div className="text-xs text-[#B3B3B3]">팔로워</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-base font-semibold text-white">0</div>
+                    <div className="text-xs text-[#B3B3B3]">팔로우</div>
+                  </div>
+                </div>
+
+                {/* 자기소개 */}
+                {profile.bio && (
+                  <p className="text-sm text-white leading-relaxed mb-3">{profile.bio}</p>
+                )}
+
+                {/* 프로필 편집 버튼 */}
+                <button
+                  onClick={() => router.push('/profile-onboarding?edit=1')}
+                  className="w-full min-h-[32px] px-4 py-1.5 bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg text-sm font-medium text-white hover:bg-[#252525] transition-colors"
+                >
+                  프로필 편집
+                </button>
+              </div>
             </div>
-
-            {/* 자기소개 */}
-            {profile.bio && (
-              <p className="text-sm text-[#B3B3B3] leading-relaxed max-w-sm">
-                {profile.bio}
-              </p>
-            )}
-
-            {/* 프로필 수정 버튼 */}
-            <PrimaryButton
-              onClick={() => router.push('/profile-onboarding?edit=1')}
-              rounded="lg"
-              className="min-h-[48px] px-8"
-            >
-              프로필 수정
-            </PrimaryButton>
           </div>
         </div>
 
-        {/* 디버그: guestId 표시 */}
-        {guestId && (
-          <div className="bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg p-3">
-            <p className="text-xs text-[#777777]">Guest ID: {guestId}</p>
-          </div>
-        )}
+        {/* 게시물 그리드 */}
+        <div className="border-t border-[#2A2A2A] mt-4">
+          {myFailures.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="mb-4">
+                <span className="text-6xl">📝</span>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                게시물이 없어요
+              </h3>
+              <p className="text-sm text-[#B3B3B3] mb-6">
+                첫 번째 실패 경험을 공유해보세요.
+              </p>
+              <PrimaryButton
+                onClick={() => router.push('/compose')}
+                rounded="lg"
+                className="min-h-[48px] px-8"
+              >
+                게시물 작성하기
+              </PrimaryButton>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-0.5">
+              {myFailures.map((failure) => {
+                const imageUrl = getImageUrl(failure)
+                return (
+                  <Link
+                    key={failure.id}
+                    href={`/failures/${failure.id}`}
+                    className="aspect-square bg-[#1a1a1a] overflow-hidden relative group"
+                  >
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={failure.title}
+                        className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-reloop-blue/20 to-reloop-blue/5 flex items-center justify-center">
+                        <span className="text-reloop-blue/30 text-3xl">📝</span>
+                      </div>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </AppShell>
   )

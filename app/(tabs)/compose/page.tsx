@@ -243,8 +243,13 @@ function ComposeForm() {
         })
 
         if (!response.ok) {
-          const error = await response.json().catch(() => ({ error: '저장 실패' }))
-          alert(error.error || '저장 중 오류가 발생했습니다.')
+          const errorData = await response.json().catch(() => ({ error: '저장 실패' }))
+          console.error('[compose] API 오류:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData,
+          })
+          alert(errorData.error || `저장 중 오류가 발생했습니다. (${response.status})`)
           return
         }
 
@@ -253,9 +258,9 @@ function ComposeForm() {
         // 성공 후 목록 페이지로 이동
         router.push('/failures')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[compose] 저장 오류:', error)
-      alert('저장 중 오류가 발생했습니다.')
+      alert(`저장 중 오류가 발생했습니다: ${error?.message || '알 수 없는 오류'}`)
     } finally {
       setLoading(false)
     }
@@ -275,7 +280,7 @@ function ComposeForm() {
         </button>
       }
     >
-      <form onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
+      <form onSubmit={handleSubmit} className="px-4 py-4 pb-32 space-y-4">
         {/* 제목 */}
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-white mb-2">

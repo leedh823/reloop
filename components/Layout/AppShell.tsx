@@ -16,9 +16,9 @@ export default function AppShell({ children, title, rightAction }: AppShellProps
 
   const tabs = [
     { path: '/home', label: '홈', icon: '🏠' },
-    { path: '/failures', label: '실패', icon: '📋' },
-    { path: '/ai', label: 'AI', icon: '🤖' },
-    { path: '/me', label: '나', icon: '👤' },
+    { path: '/failures', label: '경험', icon: '📋' },
+    { path: '/ai', label: 'AI 대화', icon: '🤖' },
+    { path: '/me', label: 'MY', icon: '👤' },
   ]
 
   const isActive = (path: string) => {
@@ -67,14 +67,14 @@ export default function AppShell({ children, title, rightAction }: AppShellProps
       </header>
 
       {/* Content Area */}
-      <main className="flex-1 overflow-y-auto pb-24 safe-area-bottom min-h-0">
+      <main className="flex-1 overflow-y-auto min-h-0 pb-20">
         <div className="w-full max-w-full overflow-x-hidden">
           {children}
         </div>
       </main>
 
       {/* Bottom Tab Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-[#2A2A2A] safe-area-bottom z-10 flex-shrink-0">
+      <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-[#2A2A2A] safe-area-bottom z-50 flex-shrink-0" style={{ pointerEvents: 'auto' }}>
         <div className="max-w-md mx-auto flex items-center justify-around h-16">
           {tabs.map((tab) => (
             <Link

@@ -87,10 +87,43 @@ export default function FeedCard({ item }: FeedCardProps) {
           </div>
         </div>
 
-        {/* Media */}
-        <div className="w-full aspect-video bg-gradient-to-br from-reloop-blue/20 to-reloop-blue/5 flex items-center justify-center">
-          <span className="text-reloop-blue/30 text-5xl">📝</span>
-        </div>
+        {/* Media - 첫 번째 이미지를 썸네일로 표시 */}
+        {(() => {
+          const imageUrl = item.images && item.images.length > 0 
+            ? item.images[0]?.url 
+            : item.fileUrl
+          
+          if (imageUrl) {
+            // 이미지 URL을 그대로 사용 (Next.js가 자동으로 처리)
+            return (
+              <div className="w-full aspect-video bg-[#1a1a1a] overflow-hidden relative">
+                <img
+                  src={imageUrl}
+                  alt={item.images?.[0]?.fileName || item.fileName || '썸네일'}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    console.error('[FeedCard] 이미지 로드 오류:', imageUrl)
+                    const target = e.target as HTMLImageElement
+                    const parent = target.parentElement
+                    if (parent) {
+                      parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-reloop-blue/20 to-reloop-blue/5 flex items-center justify-center"><span class="text-reloop-blue/30 text-5xl">📝</span></div>'
+                    }
+                  }}
+                  onLoad={() => {
+                    console.log('[FeedCard] 이미지 로드 성공:', imageUrl)
+                  }}
+                />
+              </div>
+            )
+          }
+          
+          return (
+            <div className="w-full aspect-video bg-gradient-to-br from-reloop-blue/20 to-reloop-blue/5 flex items-center justify-center">
+              <span className="text-reloop-blue/30 text-5xl">📝</span>
+            </div>
+          )
+        })()}
 
         {/* Content */}
         <div className="p-4 pt-3">
@@ -154,4 +187,5 @@ export default function FeedCard({ item }: FeedCardProps) {
     </Link>
   )
 }
+
 

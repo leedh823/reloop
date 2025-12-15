@@ -17,12 +17,18 @@ const dummyUsers = [
   { id: 'dummy_user_5', name: '정하준', avatarId: '프로필 5.png' },
 ]
 
-// 더미 이미지 URL (실제 파일명 사용 - 공백 포함)
+// 더미 이미지 URL (실제 파일명 사용)
 const getDummyImageUrl = (index: number) => {
-  // 실제 파일명 확인: 더미1.png, 더미 2.png, 더미3.png, 더미 4.png, 더미 5.png
-  const imageNames = ['더미1.png', '더미 2.png', '더미3.png', '더미 4.png', '더미 5.png']
+  // 실제 파일명: 더미1.png, 더미 2.png, 더미3.png, 더미 4.png, 더미 5.png
+  const imageNames = [
+    '더미1.png',
+    '더미 2.png',
+    '더미3.png',
+    '더미 4.png',
+    '더미 5.png',
+  ]
   const imageName = imageNames[index] || '더미1.png'
-  // 공백을 그대로 사용 (Next.js가 자동으로 처리)
+  // Next.js는 public 폴더의 파일을 자동으로 처리하므로 그대로 반환
   return `/images/${imageName}`
 }
 

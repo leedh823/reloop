@@ -145,7 +145,7 @@ export default function ChatPanel({
       />
 
       {/* 사이드 패널 */}
-      <div className={`fixed right-0 top-0 h-full w-full md:w-[420px] bg-black shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-out ${
+      <div className={`fixed right-0 top-0 h-full w-full md:w-[420px] bg-black shadow-2xl z-[60] flex flex-col transition-transform duration-300 ease-out ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         {/* 헤더 */}
@@ -211,22 +211,23 @@ export default function ChatPanel({
         </div>
 
         {/* 입력 영역 */}
-        <div className="border-t border-[#2A2A2A] p-4 bg-black safe-area-bottom">
-          <div className="flex gap-2">
+        <div className="border-t border-[#2A2A2A] px-4 pt-3 pb-6 bg-black safe-area-bottom" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}>
+          <div className="flex gap-2 items-end">
             <textarea
               ref={textareaRef}
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
-              className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent text-white placeholder:text-[#777777]"
-              rows={2}
+              placeholder="메시지를 입력하세요..."
+              className="flex-1 px-3 py-2 bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-reloop-blue focus:border-transparent text-white placeholder:text-[#777777] text-sm"
+              rows={1}
               disabled={isLoading}
+              style={{ minHeight: '40px', maxHeight: '120px' }}
             />
             <button
               onClick={handleSend}
               disabled={!inputMessage.trim() || isLoading}
-              className="bg-reloop-blue text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[48px]"
+              className="bg-reloop-blue text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[40px] min-w-[40px] flex-shrink-0"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
