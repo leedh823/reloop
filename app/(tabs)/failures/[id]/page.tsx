@@ -13,6 +13,7 @@ import ConfirmModal from '@/components/UI/ConfirmModal'
 import { getCategoryLabel } from '@/lib/constants/categories'
 import { getEmotionLabel } from '@/lib/constants/emotions'
 import { PrimaryButton } from '@/components/UI/Button'
+import { extractKeyFromR2Url, getImageProxyUrl } from '@/lib/r2'
 
 export const dynamic = 'force-dynamic'
 
@@ -230,15 +231,21 @@ export default function FailureDetailPage() {
             <div className="space-y-0">
               {failure.images && failure.images.length > 0 ? (
                 failure.images.map((image, index) => {
-                  // R2 URL은 그대로 사용, 로컬 경로만 인코딩
+                  // 이미지 URL 처리
                   let imageUrl = image.url
+                  let fallbackUrl: string | null = null
                   
-                  // 로컬 경로인 경우에만 인코딩 처리
+                  // 로컬 경로인 경우 인코딩 처리
                   if (imageUrl.startsWith('/')) {
                     imageUrl = imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
+                  } else if (imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')) {
+                    // R2 URL인 경우 프록시 URL도 준비 (실패 시 대체)
+                    const key = extractKeyFromR2Url(imageUrl)
+                    if (key) {
+                      fallbackUrl = getImageProxyUrl(key)
+                    }
                   }
                   
-                  // R2 URL인 경우 CORS 문제 해결을 위해 crossOrigin 추가
                   const isR2Url = imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')
                   
                   return (
@@ -254,7 +261,17 @@ export default function FailureDetailPage() {
                             processedUrl: imageUrl,
                             fileName: image.fileName,
                             isR2Url,
+                            fallbackUrl,
                           })
+                          
+                          // 프록시 URL이 있으면 재시도
+                          if (fallbackUrl) {
+                            const target = e.target as HTMLImageElement
+                            console.log('[failure-detail] 프록시 URL로 재시도:', fallbackUrl)
+                            target.src = fallbackUrl
+                            return
+                          }
+                          
                           // 이미지 로드 실패 시 placeholder 표시
                           const target = e.target as HTMLImageElement
                           target.style.display = 'none'
@@ -303,15 +320,21 @@ export default function FailureDetailPage() {
               ) : failure.fileUrl ? (
                 <div className="relative w-full bg-black">
                   {(() => {
-                    // R2 URL은 그대로 사용, 로컬 경로만 인코딩
+                    // 이미지 URL 처리
                     let imageUrl = failure.fileUrl
+                    let fallbackUrl: string | null = null
                     
-                    // 로컬 경로인 경우에만 인코딩 처리
+                    // 로컬 경로인 경우 인코딩 처리
                     if (imageUrl.startsWith('/')) {
                       imageUrl = imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
+                    } else if (imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')) {
+                      // R2 URL인 경우 프록시 URL도 준비 (실패 시 대체)
+                      const key = extractKeyFromR2Url(imageUrl)
+                      if (key) {
+                        fallbackUrl = getImageProxyUrl(key)
+                      }
                     }
                     
-                    // R2 URL인 경우 CORS 문제 해결을 위해 crossOrigin 추가
                     const isR2Url = imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')
                     
                     return (
@@ -326,7 +349,17 @@ export default function FailureDetailPage() {
                             processedUrl: imageUrl,
                             fileName: failure.fileName,
                             isR2Url,
+                            fallbackUrl,
                           })
+                          
+                          // 프록시 URL이 있으면 재시도
+                          if (fallbackUrl) {
+                            const target = e.target as HTMLImageElement
+                            console.log('[failure-detail] 프록시 URL로 재시도:', fallbackUrl)
+                            target.src = fallbackUrl
+                            return
+                          }
+                          
                           // 이미지 로드 실패 시 placeholder 표시
                           const target = e.target as HTMLImageElement
                           target.style.display = 'none'

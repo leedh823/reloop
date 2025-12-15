@@ -8,6 +8,7 @@ import AppShell from '@/components/Layout/AppShell'
 import { PrimaryButton } from '@/components/UI/Button'
 import { getProfile } from '@/lib/storage/profile'
 import { Failure } from '@/types/failure'
+import { extractKeyFromR2Url, getImageProxyUrl } from '@/lib/r2'
 
 const AVATAR_IMAGES: { [key: string]: string } = {
   avatar1: '/images/프로필 1.png',
@@ -221,8 +222,18 @@ export default function MePage() {
                   )
                 }
                 
-                // R2 URL인 경우 CORS 문제 해결을 위해 crossOrigin 추가
-                const isR2Url = imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')
+                // 이미지 URL 처리
+                let processedUrl = imageUrl
+                let fallbackUrl: string | null = null
+                const isR2Url = processedUrl.includes('r2.dev') || processedUrl.includes('cloudflare.com')
+                
+                // R2 URL인 경우 프록시 URL도 준비 (실패 시 대체)
+                if (isR2Url) {
+                  const key = extractKeyFromR2Url(processedUrl)
+                  if (key) {
+                    fallbackUrl = getImageProxyUrl(key)
+                  }
+                }
                 
                 return (
                   <Link
@@ -231,18 +242,28 @@ export default function MePage() {
                     className="aspect-square bg-[#1a1a1a] overflow-hidden relative group"
                   >
                     <img
-                      src={imageUrl}
+                      src={processedUrl}
                       alt={failure.title}
                       className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
                       loading="lazy"
                       crossOrigin={isR2Url ? 'anonymous' : undefined}
                       onError={(e) => {
                         console.error('[me] 이미지 로드 오류:', {
-                          imageUrl,
+                          imageUrl: processedUrl,
                           failureId: failure.id,
                           failureTitle: failure.title,
                           isR2Url,
+                          fallbackUrl,
                         })
+                        
+                        // 프록시 URL이 있으면 재시도
+                        if (fallbackUrl) {
+                          const target = e.target as HTMLImageElement
+                          console.log('[me] 프록시 URL로 재시도:', fallbackUrl)
+                          target.src = fallbackUrl
+                          return
+                        }
+                        
                         const target = e.target as HTMLImageElement
                         const parent = target.parentElement
                         if (parent) {
@@ -250,7 +271,7 @@ export default function MePage() {
                         }
                       }}
                       onLoad={() => {
-                        console.log('[me] 이미지 로드 성공:', imageUrl)
+                        console.log('[me] 이미지 로드 성공:', processedUrl)
                       }}
                     />
                   </Link>

@@ -122,3 +122,61 @@ export function generateFileKey(filename: string): string {
   return `uploads/${timestamp}_${random}_${sanitizedName}.${extension}`
 }
 
+/**
+ * R2 URL에서 파일 키 추출
+ * @param url R2 공개 URL
+ * @returns 파일 키 또는 null
+ */
+export function extractKeyFromR2Url(url: string): string | null {
+  // R2 URL 형식: https://pub-{account-id}.r2.dev/{bucket-name}/{key}
+  // 또는: https://{custom-domain}/{key}
+  try {
+    const urlObj = new URL(url)
+    const pathParts = urlObj.pathname.split('/').filter(Boolean)
+    
+    // bucket-name 다음이 key
+    if (pathParts.length >= 2) {
+      // bucket-name을 제외한 나머지가 key
+      return pathParts.slice(1).join('/')
+    }
+    
+    // Custom domain인 경우 첫 번째 경로가 key일 수 있음
+    if (pathParts.length >= 1) {
+      return pathParts.join('/')
+    }
+    
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 이미지 프록시 URL 생성
+ * @param key 파일 키 또는 R2 URL
+ * @returns 프록시 URL
+ */
+export function getImageProxyUrl(keyOrUrl: string): string {
+  // 이미 프록시 URL인 경우 그대로 반환
+  if (keyOrUrl.includes('/api/images/proxy')) {
+    return keyOrUrl
+  }
+  
+  // R2 URL인 경우 key 추출
+  let key = keyOrUrl
+  if (keyOrUrl.includes('r2.dev') || keyOrUrl.includes('cloudflare.com')) {
+    const extractedKey = extractKeyFromR2Url(keyOrUrl)
+    if (extractedKey) {
+      key = extractedKey
+    }
+  } else if (keyOrUrl.startsWith('uploads/')) {
+    // 이미 key 형식인 경우
+    key = keyOrUrl
+  } else if (keyOrUrl.startsWith('/')) {
+    // 로컬 경로인 경우 그대로 반환
+    return keyOrUrl
+  }
+  
+  return `/api/images/proxy?key=${encodeURIComponent(key)}`
+}
+
