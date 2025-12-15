@@ -28,6 +28,9 @@ export default function FailureDetailPage() {
   const [isCommentDrawerOpen, setIsCommentDrawerOpen] = useState(false)
   const [isChatPanelOpen, setIsChatPanelOpen] = useState(false)
   const [isAuthor, setIsAuthor] = useState(false)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [touchStart, setTouchStart] = useState(0)
+  const [touchEnd, setTouchEnd] = useState(0)
 
   useEffect(() => {
     const loadFailure = async () => {
@@ -36,6 +39,7 @@ export default function FailureDetailPage() {
         if (response.ok) {
           const data = await response.json()
           setFailure(data)
+          setCurrentImageIndex(0) // 이미지 인덱스 리셋
           
           // 작성자 확인
           if (typeof window !== 'undefined') {
@@ -55,6 +59,70 @@ export default function FailureDetailPage() {
     }
     loadFailure()
   }, [id])
+
+  // 이미지 배열 가져오기
+  const getImageList = () => {
+    if (failure?.images && failure.images.length > 0) {
+      return failure.images
+    } else if (failure?.fileUrl) {
+      return [{
+        url: failure.fileUrl,
+        fileName: failure.fileName || '이미지',
+        fileType: failure.fileType || 'image/jpeg',
+      }]
+    }
+    return []
+  }
+
+  const imageList = getImageList()
+  const totalImages = imageList.length
+
+  // 터치 이벤트 핸들러
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (isLeftSwipe && currentImageIndex < totalImages - 1) {
+      setCurrentImageIndex(currentImageIndex + 1)
+    }
+    if (isRightSwipe && currentImageIndex > 0) {
+      setCurrentImageIndex(currentImageIndex - 1)
+    }
+  }
+
+  // 이미지 URL 처리 헬퍼 함수
+  const processImageUrl = (url: string) => {
+    let imageUrl = url
+    let fallbackUrl: string | null = null
+    
+    // 로컬 경로인 경우 처리
+    if (imageUrl.startsWith('/images/')) {
+      // /images/ 경로는 Next.js가 자동으로 public/images에서 서빙
+      // 이미 올바른 형식이므로 그대로 사용
+    } else if (imageUrl.startsWith('/')) {
+      // 다른 로컬 경로인 경우 인코딩 처리
+      imageUrl = imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
+    } else if (imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')) {
+      // R2 URL인 경우 프록시 URL도 준비 (실패 시 대체)
+      const key = extractKeyFromR2Url(imageUrl)
+      if (key) {
+        fallbackUrl = getImageProxyUrl(key)
+      }
+    }
+    
+    return { imageUrl, fallbackUrl, isR2Url: imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com') }
+  }
 
   const handleEdit = () => {
     router.push(`/compose?id=${id}`)
@@ -226,34 +294,29 @@ export default function FailureDetailPage() {
       {/* 컨텐츠 영역 */}
       <main className="flex-1 overflow-y-auto pb-20 safe-area-bottom min-h-0">
         <div className="w-full max-w-full overflow-x-hidden">
-          {/* 이미지 섹션 (최우선 표시) */}
-          {(failure.images && failure.images.length > 0) || failure.fileUrl ? (
-            <div className="space-y-0">
-              {failure.images && failure.images.length > 0 ? (
-                failure.images.map((image, index) => {
-                  // 이미지 URL 처리
-                  let imageUrl = image.url
-                  let fallbackUrl: string | null = null
-                  
-                  // 로컬 경로인 경우 처리
-                  if (imageUrl.startsWith('/images/')) {
-                    // /images/ 경로는 Next.js가 자동으로 public/images에서 서빙
-                    // 이미 올바른 형식이므로 그대로 사용
-                  } else if (imageUrl.startsWith('/')) {
-                    // 다른 로컬 경로인 경우 인코딩 처리
-                    imageUrl = imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
-                  } else if (imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')) {
-                    // R2 URL인 경우 프록시 URL도 준비 (실패 시 대체)
-                    const key = extractKeyFromR2Url(imageUrl)
-                    if (key) {
-                      fallbackUrl = getImageProxyUrl(key)
-                    }
-                  }
-                  
-                  const isR2Url = imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')
+          {/* 이미지 섹션 (가로 스와이프 캐러셀) */}
+          {totalImages > 0 ? (
+            <div className="relative w-full bg-black">
+              {/* 이미지 컨테이너 */}
+              <div 
+                className="flex overflow-x-hidden relative"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  transform: `translateX(-${currentImageIndex * 100}%)`,
+                  transition: 'transform 0.3s ease-out',
+                }}
+              >
+                {imageList.map((image, index) => {
+                  const { imageUrl, fallbackUrl, isR2Url } = processImageUrl(image.url)
                   
                   return (
-                    <div key={index} className="relative w-full bg-black">
+                    <div 
+                      key={index} 
+                      className="w-full flex-shrink-0 relative bg-black"
+                      style={{ minWidth: '100%' }}
+                    >
                       <img
                         src={imageUrl}
                         alt={image.fileName || `이미지 ${index + 1}`}
@@ -292,7 +355,7 @@ export default function FailureDetailPage() {
                         <button
                           onClick={async () => {
                             try {
-                              const updatedImages = failure.images?.filter((_, i) => i !== index) || []
+                              const updatedImages = failure?.images?.filter((_, i) => i !== index) || []
                               const response = await fetch(`/api/failures/${id}`, {
                                 method: 'PUT',
                                 headers: {
@@ -308,110 +371,72 @@ export default function FailureDetailPage() {
                               if (response.ok) {
                                 const updated = await response.json()
                                 setFailure(updated)
+                                // 이미지 삭제 후 인덱스 조정
+                                if (currentImageIndex >= updatedImages.length && updatedImages.length > 0) {
+                                  setCurrentImageIndex(updatedImages.length - 1)
+                                } else if (updatedImages.length === 0) {
+                                  setCurrentImageIndex(0)
+                                }
                               }
                             } catch (error) {
                               console.error('[failure-detail] 이미지 삭제 오류:', error)
                             }
                           }}
-                          className="absolute top-4 right-4 bg-black/70 text-red-400 text-sm px-3 py-2 rounded min-h-[44px] backdrop-blur-sm"
+                          className="absolute top-4 right-4 bg-black/70 text-red-400 text-sm px-3 py-2 rounded min-h-[44px] backdrop-blur-sm z-10"
                         >
                           삭제
                         </button>
                       )}
                     </div>
                   )
-                })
-              ) : failure.fileUrl ? (
-                <div className="relative w-full bg-black">
-                  {(() => {
-                    // 이미지 URL 처리
-                    let imageUrl = failure.fileUrl
-                    let fallbackUrl: string | null = null
-                    
-                    // 로컬 경로인 경우 처리
-                    if (imageUrl.startsWith('/images/')) {
-                      // /images/ 경로는 Next.js가 자동으로 public/images에서 서빙
-                      // 이미 올바른 형식이므로 그대로 사용
-                    } else if (imageUrl.startsWith('/')) {
-                      // 다른 로컬 경로인 경우 인코딩 처리
-                      imageUrl = imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
-                    } else if (imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')) {
-                      // R2 URL인 경우 프록시 URL도 준비 (실패 시 대체)
-                      const key = extractKeyFromR2Url(imageUrl)
-                      if (key) {
-                        fallbackUrl = getImageProxyUrl(key)
-                      }
-                    }
-                    
-                    const isR2Url = imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')
-                    
-                    return (
-                      <img
-                        src={imageUrl}
-                        alt={failure.fileName || '이미지'}
-                        className="w-full h-auto object-contain"
-                        crossOrigin={isR2Url ? 'anonymous' : undefined}
-                        onError={(e) => {
-                          console.error('[failure-detail] 이미지 로드 오류:', {
-                            originalUrl: failure.fileUrl,
-                            processedUrl: imageUrl,
-                            fileName: failure.fileName,
-                            isR2Url,
-                            fallbackUrl,
-                          })
-                          
-                          // 프록시 URL이 있으면 재시도
-                          if (fallbackUrl) {
-                            const target = e.target as HTMLImageElement
-                            console.log('[failure-detail] 프록시 URL로 재시도:', fallbackUrl)
-                            target.src = fallbackUrl
-                            return
-                          }
-                          
-                          // 이미지 로드 실패 시 placeholder 표시
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
-                          const placeholder = document.createElement('div')
-                          placeholder.className = 'w-full h-64 bg-[#1a1a1a] flex items-center justify-center text-[#777777]'
-                          placeholder.textContent = '이미지를 불러올 수 없습니다'
-                          target.parentElement?.appendChild(placeholder)
-                        }}
-                        onLoad={() => {
-                          console.log('[failure-detail] 이미지 로드 성공:', imageUrl)
-                        }}
-                      />
-                    )
-                  })()}
-                  {isAuthor && (
+                })}
+              </div>
+
+              {/* 이미지 인디케이터 (여러 이미지가 있을 때만 표시) */}
+              {totalImages > 1 && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
+                  {imageList.map((_, index) => (
                     <button
-                      onClick={async () => {
-                        try {
-                          const response = await fetch(`/api/failures/${id}`, {
-                            method: 'PUT',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              fileUrl: undefined,
-                              fileName: undefined,
-                              fileType: undefined,
-                            }),
-                          })
-                          if (response.ok) {
-                            const updated = await response.json()
-                            setFailure(updated)
-                          }
-                        } catch (error) {
-                          console.error('[failure-detail] 이미지 삭제 오류:', error)
-                        }
-                      }}
-                      className="absolute top-4 right-4 bg-black/70 text-red-400 text-sm px-3 py-2 rounded min-h-[44px] backdrop-blur-sm"
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`h-2 rounded-full transition-all ${
+                        index === currentImageIndex 
+                          ? 'bg-white w-8' 
+                          : 'bg-white/50 w-2'
+                      }`}
+                      aria-label={`이미지 ${index + 1}로 이동`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* 이전/다음 버튼 (여러 이미지가 있을 때만 표시) */}
+              {totalImages > 1 && (
+                <>
+                  {currentImageIndex > 0 && (
+                    <button
+                      onClick={() => setCurrentImageIndex(currentImageIndex - 1)}
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full backdrop-blur-sm z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label="이전 이미지"
                     >
-                      삭제
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
                     </button>
                   )}
-                </div>
-              ) : null}
+                  {currentImageIndex < totalImages - 1 && (
+                    <button
+                      onClick={() => setCurrentImageIndex(currentImageIndex + 1)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full backdrop-blur-sm z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label="다음 이미지"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           ) : null}
 
