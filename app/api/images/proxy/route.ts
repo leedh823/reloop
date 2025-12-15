@@ -44,7 +44,8 @@ export async function GET(request: NextRequest) {
       size: fileBuffer.length,
     })
 
-    return new NextResponse(fileBuffer, {
+    // Buffer를 Uint8Array로 변환하여 NextResponse에 전달
+    return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000, immutable',
