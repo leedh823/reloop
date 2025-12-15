@@ -11,12 +11,12 @@ import { Failure } from '@/types/failure'
 import { extractKeyFromR2Url, getImageProxyUrl } from '@/lib/r2'
 
 const AVATAR_IMAGES: { [key: string]: string } = {
-  avatar1: '/images/프로필 1.png',
-  avatar2: '/images/프로필 2.png',
-  avatar3: '/images/프로필3.png',
-  avatar4: '/images/프로필 4.png',
-  avatar5: '/images/프로필 5.png',
-  avatar6: '/images/프로필 6.png',
+  avatar1: `/images/${encodeURIComponent('프로필 1.png')}`,
+  avatar2: `/images/${encodeURIComponent('프로필 2.png')}`,
+  avatar3: `/images/${encodeURIComponent('프로필3.png')}`,
+  avatar4: `/images/${encodeURIComponent('프로필 4.png')}`,
+  avatar5: `/images/${encodeURIComponent('프로필 5.png')}`,
+  avatar6: `/images/${encodeURIComponent('프로필 6.png')}`,
 }
 
 export default function MePage() {
