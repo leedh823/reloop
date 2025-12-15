@@ -259,38 +259,39 @@ export default function FailureDetailPage() {
                           console.log('[failure-detail] 이미지 로드 성공:', imageUrl)
                         }}
                       />
-                    {isAuthor && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const updatedImages = failure.images?.filter((_, i) => i !== index) || []
-                            const response = await fetch(`/api/failures/${id}`, {
-                              method: 'PUT',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({
-                                images: updatedImages.length > 0 ? updatedImages : undefined,
-                                fileUrl: updatedImages.length > 0 ? updatedImages[0]?.url : undefined,
-                                fileName: updatedImages.length > 0 ? updatedImages[0]?.fileName : undefined,
-                                fileType: updatedImages.length > 0 ? updatedImages[0]?.fileType : undefined,
-                              }),
-                            })
-                            if (response.ok) {
-                              const updated = await response.json()
-                              setFailure(updated)
+                      {isAuthor && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const updatedImages = failure.images?.filter((_, i) => i !== index) || []
+                              const response = await fetch(`/api/failures/${id}`, {
+                                method: 'PUT',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  images: updatedImages.length > 0 ? updatedImages : undefined,
+                                  fileUrl: updatedImages.length > 0 ? updatedImages[0]?.url : undefined,
+                                  fileName: updatedImages.length > 0 ? updatedImages[0]?.fileName : undefined,
+                                  fileType: updatedImages.length > 0 ? updatedImages[0]?.fileType : undefined,
+                                }),
+                              })
+                              if (response.ok) {
+                                const updated = await response.json()
+                                setFailure(updated)
+                              }
+                            } catch (error) {
+                              console.error('[failure-detail] 이미지 삭제 오류:', error)
                             }
-                          } catch (error) {
-                            console.error('[failure-detail] 이미지 삭제 오류:', error)
-                          }
-                        }}
-                        className="absolute top-4 right-4 bg-black/70 text-red-400 text-sm px-3 py-2 rounded min-h-[44px] backdrop-blur-sm"
-                      >
-                        삭제
-                      </button>
-                    )}
-                  </div>
-                ))
+                          }}
+                          className="absolute top-4 right-4 bg-black/70 text-red-400 text-sm px-3 py-2 rounded min-h-[44px] backdrop-blur-sm"
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </div>
+                  )
+                })
               ) : failure.fileUrl ? (
                 <div className="relative w-full bg-black">
                   {(() => {
