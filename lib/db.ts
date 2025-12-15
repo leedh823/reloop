@@ -28,8 +28,9 @@ const getDummyImageUrl = (index: number) => {
     '더미 5.png',
   ]
   const imageName = imageNames[index] || '더미1.png'
-  // Next.js는 public 폴더의 파일을 자동으로 처리하므로 그대로 반환
-  return `/images/${imageName}`
+  // 공백이 포함된 파일명은 URL 인코딩 필요
+  const encodedName = encodeURIComponent(imageName)
+  return `/images/${encodedName}`
 }
 
 // 더미 데이터 초기화 (서버 시작 시)

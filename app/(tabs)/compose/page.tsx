@@ -110,10 +110,10 @@ function ComposeForm() {
 
         if (!image.file) continue
 
-        // 파일 크기 검증 (10MB)
-        const maxSize = 10 * 1024 * 1024
+        // 파일 크기 검증 (50MB)
+        const maxSize = 50 * 1024 * 1024
         if (image.file.size > maxSize) {
-          alert(`${image.file.name}: 이미지가 너무 큽니다. (${(image.file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 10MB까지 지원합니다.`)
+          alert(`${image.file.name}: 이미지가 너무 큽니다. (${(image.file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 50MB까지 지원합니다.`)
           continue
         }
 
