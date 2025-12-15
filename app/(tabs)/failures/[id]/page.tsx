@@ -132,13 +132,16 @@ export default function FailureDetailPage() {
     // 로컬 경로인 경우 처리
     if (imageUrl.startsWith('/images/')) {
       // /images/ 경로는 Next.js가 자동으로 public/images에서 서빙
-      // 공백이 인코딩되지 않은 경우 %20으로 변환
+      // 이미 인코딩된 URL인지 확인 (이미 %가 포함되어 있으면 그대로 사용)
       if (!imageUrl.includes('%')) {
+        // 인코딩되지 않은 경우 파일명만 인코딩
         const parts = imageUrl.split('/')
         const filename = parts[parts.length - 1]
+        // 공백을 %20으로 변환
         const encodedFilename = filename.replace(/ /g, '%20')
         imageUrl = `/images/${encodedFilename}`
       }
+      // 이미 인코딩된 경우 그대로 사용
     } else if (imageUrl.startsWith('/')) {
       // 다른 로컬 경로인 경우 인코딩 처리
       imageUrl = imageUrl.split('/').map((part, i) => {
@@ -154,7 +157,12 @@ export default function FailureDetailPage() {
       }
     }
     
-    console.log('[failure-detail] processImageUrl 출력:', { imageUrl, fallbackUrl })
+    console.log('[failure-detail] processImageUrl 출력:', { 
+      original: url,
+      processed: imageUrl, 
+      fallback: fallbackUrl,
+      isR2Url: imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')
+    })
     
     return { imageUrl, fallbackUrl, isR2Url: imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com') }
   }
@@ -358,24 +366,35 @@ export default function FailureDetailPage() {
                         className="w-full h-auto object-contain"
                         crossOrigin={isR2Url ? 'anonymous' : undefined}
                         onError={(e) => {
+                          const target = e.target as HTMLImageElement
                           console.error('[failure-detail] 이미지 로드 오류:', {
+                            index,
                             originalUrl: image.url,
                             processedUrl: imageUrl,
                             fileName: image.fileName,
                             isR2Url,
                             fallbackUrl,
+                            currentSrc: target.currentSrc,
                           })
                           
                           // 프록시 URL이 있으면 재시도
-                          if (fallbackUrl) {
-                            const target = e.target as HTMLImageElement
+                          if (fallbackUrl && target.src !== fallbackUrl) {
                             console.log('[failure-detail] 프록시 URL로 재시도:', fallbackUrl)
                             target.src = fallbackUrl
                             return
                           }
                           
+                          // 한글 파일명이 있는 경우 인코딩 재시도
+                          if (imageUrl.includes('/images/') && !imageUrl.includes('%')) {
+                            const parts = imageUrl.split('/')
+                            const filename = parts[parts.length - 1]
+                            const encodedUrl = `/images/${encodeURIComponent(filename)}`
+                            console.log('[failure-detail] 인코딩된 URL로 재시도:', encodedUrl)
+                            target.src = encodedUrl
+                            return
+                          }
+                          
                           // 이미지 로드 실패 시 placeholder 표시
-                          const target = e.target as HTMLImageElement
                           target.style.display = 'none'
                           const placeholder = document.createElement('div')
                           placeholder.className = 'w-full h-64 bg-[#1a1a1a] flex items-center justify-center text-[#777777]'
@@ -383,7 +402,11 @@ export default function FailureDetailPage() {
                           target.parentElement?.appendChild(placeholder)
                         }}
                         onLoad={() => {
-                          console.log('[failure-detail] 이미지 로드 성공:', imageUrl)
+                          console.log('[failure-detail] 이미지 로드 성공:', {
+                            index,
+                            imageUrl,
+                            fileName: image.fileName,
+                          })
                         }}
                       />
                       {isAuthor && (
