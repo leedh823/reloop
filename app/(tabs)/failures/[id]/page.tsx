@@ -62,16 +62,37 @@ export default function FailureDetailPage() {
 
   // 이미지 배열 가져오기
   const getImageList = () => {
+    const images: Array<{ url: string; fileName: string; fileType: string }> = []
+    
+    // images 배열이 있으면 모두 추가
     if (failure?.images && failure.images.length > 0) {
-      return failure.images
-    } else if (failure?.fileUrl) {
-      return [{
+      failure.images.forEach(img => {
+        if (img.url) {
+          images.push({
+            url: img.url,
+            fileName: img.fileName || '이미지',
+            fileType: img.fileType || 'image/jpeg',
+          })
+        }
+      })
+    }
+    
+    // fileUrl이 있고 images 배열에 없으면 추가
+    if (failure?.fileUrl && !images.some(img => img.url === failure.fileUrl)) {
+      images.push({
         url: failure.fileUrl,
         fileName: failure.fileName || '이미지',
         fileType: failure.fileType || 'image/jpeg',
-      }]
+      })
     }
-    return []
+    
+    console.log('[failure-detail] getImageList:', {
+      failureId: failure?.id,
+      imagesCount: images.length,
+      images: images.map(img => ({ url: img.url, fileName: img.fileName })),
+    })
+    
+    return images
   }
 
   const imageList = getImageList()
@@ -106,13 +127,25 @@ export default function FailureDetailPage() {
     let imageUrl = url
     let fallbackUrl: string | null = null
     
+    console.log('[failure-detail] processImageUrl 입력:', url)
+    
     // 로컬 경로인 경우 처리
     if (imageUrl.startsWith('/images/')) {
       // /images/ 경로는 Next.js가 자동으로 public/images에서 서빙
-      // 이미 올바른 형식이므로 그대로 사용
+      // 공백이 인코딩되지 않은 경우 %20으로 변환
+      if (!imageUrl.includes('%')) {
+        const parts = imageUrl.split('/')
+        const filename = parts[parts.length - 1]
+        const encodedFilename = filename.replace(/ /g, '%20')
+        imageUrl = `/images/${encodedFilename}`
+      }
     } else if (imageUrl.startsWith('/')) {
       // 다른 로컬 경로인 경우 인코딩 처리
-      imageUrl = imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
+      imageUrl = imageUrl.split('/').map((part, i) => {
+        if (i === 0) return part
+        // 공백을 %20으로 변환
+        return part.replace(/ /g, '%20')
+      }).join('/')
     } else if (imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')) {
       // R2 URL인 경우 프록시 URL도 준비 (실패 시 대체)
       const key = extractKeyFromR2Url(imageUrl)
@@ -120,6 +153,8 @@ export default function FailureDetailPage() {
         fallbackUrl = getImageProxyUrl(key)
       }
     }
+    
+    console.log('[failure-detail] processImageUrl 출력:', { imageUrl, fallbackUrl })
     
     return { imageUrl, fallbackUrl, isR2Url: imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com') }
   }
