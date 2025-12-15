@@ -58,8 +58,21 @@ export async function generateUploadUrl(
  * @returns 공개 URL
  */
 export function getPublicUrl(key: string): string {
-  // R2_PUBLIC_URL이 설정되어 있으면 사용, 없으면 기본 R2 URL 사용
-  const baseUrl = process.env.R2_PUBLIC_URL || R2_ENDPOINT.replace('.r2.cloudflarestorage.com', '.r2.dev')
+  // R2_PUBLIC_URL이 설정되어 있으면 사용
+  if (process.env.R2_PUBLIC_URL) {
+    return `${process.env.R2_PUBLIC_URL}/${key}`
+  }
+  
+  // R2 버킷의 공개 URL 형식: https://pub-{account-id}.r2.dev/{bucket-name}/{key}
+  const accountId = process.env.R2_ACCOUNT_ID
+  const bucketName = process.env.R2_BUCKET_NAME
+  
+  if (accountId && bucketName) {
+    return `https://pub-${accountId}.r2.dev/${bucketName}/${key}`
+  }
+  
+  // 폴백: 기본 R2 URL 사용
+  const baseUrl = R2_ENDPOINT.replace('.r2.cloudflarestorage.com', '.r2.dev')
   return `${baseUrl}/${key}`
 }
 

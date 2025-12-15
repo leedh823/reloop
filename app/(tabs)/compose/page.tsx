@@ -134,7 +134,15 @@ function ComposeForm() {
           throw new Error('업로드 URL 생성 실패')
         }
 
-        const { uploadUrl, publicUrl } = await uploadResponse.json()
+        const { uploadUrl, publicUrl, key } = await uploadResponse.json()
+
+        console.log('[compose] 이미지 업로드 시작:', {
+          fileName: image.file.name,
+          fileSize: image.file.size,
+          uploadUrl: uploadUrl?.substring(0, 50) + '...',
+          publicUrl,
+          key,
+        })
 
         // R2에 직접 업로드
         const uploadResult = await fetch(uploadUrl, {
@@ -146,8 +154,19 @@ function ComposeForm() {
         })
 
         if (!uploadResult.ok) {
-          throw new Error('파일 업로드 실패')
+          console.error('[compose] 이미지 업로드 실패:', {
+            status: uploadResult.status,
+            statusText: uploadResult.statusText,
+            fileName: image.file.name,
+          })
+          throw new Error(`파일 업로드 실패: ${uploadResult.status} ${uploadResult.statusText}`)
         }
+
+        console.log('[compose] 이미지 업로드 성공:', {
+          fileName: image.file.name,
+          publicUrl,
+          key,
+        })
 
         urls.push(publicUrl)
       }
@@ -179,11 +198,17 @@ function ComposeForm() {
       }
 
       // 이미지 데이터 구조화
-      const images = imageUrls.map((url, index) => ({
-        url,
-        fileName: selectedImages[index]?.file?.name || `이미지 ${index + 1}`,
-        fileType: selectedImages[index]?.file?.type || 'image/jpeg',
-      }))
+      const images = imageUrls.map((url, index) => {
+        const imageData = {
+          url,
+          fileName: selectedImages[index]?.file?.name || `이미지 ${index + 1}`,
+          fileType: selectedImages[index]?.file?.type || 'image/jpeg',
+        }
+        console.log('[compose] 이미지 데이터 구조화:', imageData)
+        return imageData
+      })
+      
+      console.log('[compose] 최종 이미지 배열:', images)
 
       if (failureId) {
         // 편집 모드: API를 통해 업데이트
