@@ -45,9 +45,9 @@ export default function AnalyzeInput({
     }
 
     // 파일 크기 검증 (10MB)
-    const maxSize = 10 * 1024 * 1024
+    const maxSize = 50 * 1024 * 1024
     if (file.size > maxSize) {
-      alert(`파일이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 10MB까지 지원합니다.`)
+      alert(`파일이 너무 큽니다. (${(file.size / (1024 * 1024)).toFixed(1)}MB)\n\n최대 50MB까지 지원합니다.`)
       return
     }
 

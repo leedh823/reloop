@@ -230,10 +230,16 @@ export default function FailureDetailPage() {
             <div className="space-y-0">
               {failure.images && failure.images.length > 0 ? (
                 failure.images.map((image, index) => {
-                  // URL 인코딩 처리 (공백 등 특수문자 처리)
-                  const imageUrl = image.url.startsWith('/') 
-                    ? image.url.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
-                    : image.url
+                  // R2 URL은 그대로 사용, 로컬 경로만 인코딩
+                  let imageUrl = image.url
+                  
+                  // 로컬 경로인 경우에만 인코딩 처리
+                  if (imageUrl.startsWith('/')) {
+                    imageUrl = imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
+                  }
+                  
+                  // R2 URL인 경우 CORS 문제 해결을 위해 crossOrigin 추가
+                  const isR2Url = imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')
                   
                   return (
                     <div key={index} className="relative w-full bg-black">
@@ -241,11 +247,13 @@ export default function FailureDetailPage() {
                         src={imageUrl}
                         alt={image.fileName || `이미지 ${index + 1}`}
                         className="w-full h-auto object-contain"
+                        crossOrigin={isR2Url ? 'anonymous' : undefined}
                         onError={(e) => {
                           console.error('[failure-detail] 이미지 로드 오류:', {
                             originalUrl: image.url,
                             processedUrl: imageUrl,
                             fileName: image.fileName,
+                            isR2Url,
                           })
                           // 이미지 로드 실패 시 placeholder 표시
                           const target = e.target as HTMLImageElement
@@ -295,21 +303,29 @@ export default function FailureDetailPage() {
               ) : failure.fileUrl ? (
                 <div className="relative w-full bg-black">
                   {(() => {
-                    // URL 인코딩 처리 (공백 등 특수문자 처리)
-                    const imageUrl = failure.fileUrl.startsWith('/') 
-                      ? failure.fileUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
-                      : failure.fileUrl
+                    // R2 URL은 그대로 사용, 로컬 경로만 인코딩
+                    let imageUrl = failure.fileUrl
+                    
+                    // 로컬 경로인 경우에만 인코딩 처리
+                    if (imageUrl.startsWith('/')) {
+                      imageUrl = imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
+                    }
+                    
+                    // R2 URL인 경우 CORS 문제 해결을 위해 crossOrigin 추가
+                    const isR2Url = imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')
                     
                     return (
                       <img
                         src={imageUrl}
                         alt={failure.fileName || '이미지'}
                         className="w-full h-auto object-contain"
+                        crossOrigin={isR2Url ? 'anonymous' : undefined}
                         onError={(e) => {
                           console.error('[failure-detail] 이미지 로드 오류:', {
                             originalUrl: failure.fileUrl,
                             processedUrl: imageUrl,
                             fileName: failure.fileName,
+                            isR2Url,
                           })
                           // 이미지 로드 실패 시 placeholder 표시
                           const target = e.target as HTMLImageElement

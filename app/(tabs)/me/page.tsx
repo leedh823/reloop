@@ -106,10 +106,21 @@ export default function MePage() {
   }
 
   const getImageUrl = (failure: Failure) => {
+    let imageUrl: string | undefined
     if (failure.images && failure.images.length > 0) {
-      return failure.images[0].url
+      imageUrl = failure.images[0].url
+    } else if (failure.fileUrl) {
+      imageUrl = failure.fileUrl
     }
-    return failure.fileUrl
+    
+    if (!imageUrl) return null
+    
+    // R2 URL은 그대로 사용, 로컬 경로만 인코딩
+    if (imageUrl.startsWith('/')) {
+      return imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
+    }
+    
+    return imageUrl
   }
 
   return (
@@ -196,24 +207,52 @@ export default function MePage() {
             <div className="grid grid-cols-3 gap-0.5">
               {myFailures.map((failure) => {
                 const imageUrl = getImageUrl(failure)
+                if (!imageUrl) {
+                  return (
+                    <Link
+                      key={failure.id}
+                      href={`/failures/${failure.id}`}
+                      className="aspect-square bg-[#1a1a1a] overflow-hidden relative group"
+                    >
+                      <div className="w-full h-full bg-gradient-to-br from-reloop-blue/20 to-reloop-blue/5 flex items-center justify-center">
+                        <span className="text-reloop-blue/30 text-3xl">📝</span>
+                      </div>
+                    </Link>
+                  )
+                }
+                
+                // R2 URL인 경우 CORS 문제 해결을 위해 crossOrigin 추가
+                const isR2Url = imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')
+                
                 return (
                   <Link
                     key={failure.id}
                     href={`/failures/${failure.id}`}
                     className="aspect-square bg-[#1a1a1a] overflow-hidden relative group"
                   >
-                    {imageUrl ? (
-                      <img
-                        src={imageUrl}
-                        alt={failure.title}
-                        className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-reloop-blue/20 to-reloop-blue/5 flex items-center justify-center">
-                        <span className="text-reloop-blue/30 text-3xl">📝</span>
-                      </div>
-                    )}
+                    <img
+                      src={imageUrl}
+                      alt={failure.title}
+                      className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
+                      loading="lazy"
+                      crossOrigin={isR2Url ? 'anonymous' : undefined}
+                      onError={(e) => {
+                        console.error('[me] 이미지 로드 오류:', {
+                          imageUrl,
+                          failureId: failure.id,
+                          failureTitle: failure.title,
+                          isR2Url,
+                        })
+                        const target = e.target as HTMLImageElement
+                        const parent = target.parentElement
+                        if (parent) {
+                          parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-reloop-blue/20 to-reloop-blue/5 flex items-center justify-center"><span class="text-reloop-blue/30 text-3xl">📝</span></div>'
+                        }
+                      }}
+                      onLoad={() => {
+                        console.log('[me] 이미지 로드 성공:', imageUrl)
+                      }}
+                    />
                   </Link>
                 )
               })}
