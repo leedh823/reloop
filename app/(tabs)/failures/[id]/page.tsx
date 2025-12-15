@@ -235,8 +235,12 @@ export default function FailureDetailPage() {
                   let imageUrl = image.url
                   let fallbackUrl: string | null = null
                   
-                  // 로컬 경로인 경우 인코딩 처리
-                  if (imageUrl.startsWith('/')) {
+                  // 로컬 경로인 경우 처리
+                  if (imageUrl.startsWith('/images/')) {
+                    // /images/ 경로는 Next.js가 자동으로 public/images에서 서빙
+                    // 이미 올바른 형식이므로 그대로 사용
+                  } else if (imageUrl.startsWith('/')) {
+                    // 다른 로컬 경로인 경우 인코딩 처리
                     imageUrl = imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
                   } else if (imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')) {
                     // R2 URL인 경우 프록시 URL도 준비 (실패 시 대체)
@@ -324,8 +328,12 @@ export default function FailureDetailPage() {
                     let imageUrl = failure.fileUrl
                     let fallbackUrl: string | null = null
                     
-                    // 로컬 경로인 경우 인코딩 처리
-                    if (imageUrl.startsWith('/')) {
+                    // 로컬 경로인 경우 처리
+                    if (imageUrl.startsWith('/images/')) {
+                      // /images/ 경로는 Next.js가 자동으로 public/images에서 서빙
+                      // 이미 올바른 형식이므로 그대로 사용
+                    } else if (imageUrl.startsWith('/')) {
+                      // 다른 로컬 경로인 경우 인코딩 처리
                       imageUrl = imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
                     } else if (imageUrl.includes('r2.dev') || imageUrl.includes('cloudflare.com')) {
                       // R2 URL인 경우 프록시 URL도 준비 (실패 시 대체)

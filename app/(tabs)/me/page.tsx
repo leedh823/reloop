@@ -116,7 +116,13 @@ export default function MePage() {
     
     if (!imageUrl) return null
     
-    // R2 URL은 그대로 사용, 로컬 경로만 인코딩
+    // /images/ 경로는 Next.js가 자동으로 public/images에서 서빙
+    // 이미 올바른 형식이므로 그대로 사용
+    if (imageUrl.startsWith('/images/')) {
+      return imageUrl
+    }
+    
+    // 다른 로컬 경로인 경우 인코딩 처리
     if (imageUrl.startsWith('/')) {
       return imageUrl.split('/').map((part, i) => i === 0 ? part : encodeURIComponent(part)).join('/')
     }
